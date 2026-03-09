@@ -1,0 +1,2087 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Motor Wankel — FACENS | Trabalho Acadêmico</title>
+<link href="https://fonts.googleapis.com/css2?family=Playfair+Display:wght@400;600;700&family=Source+Sans+3:wght@300;400;600&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet">
+<style>
+  :root {
+    --bg-primary: #0a0d14;
+    --bg-secondary: #0f1520;
+    --bg-card: #131929;
+    --bg-card-hover: #1a2235;
+    --accent-blue: #5ab4f5;
+    --accent-blue-dim: #3d8fd4;
+    --accent-blue-glow: rgba(90, 180, 245, 0.15);
+    --accent-blue-border: rgba(90, 180, 245, 0.3);
+    --text-primary: #e8edf5;
+    --text-secondary: #8fa3bc;
+    --text-muted: #4d6278;
+    --border: rgba(90, 180, 245, 0.12);
+    --border-strong: rgba(90, 180, 245, 0.25);
+    --gold: #c9a84c;
+    --gold-dim: rgba(201, 168, 76, 0.2);
+  }
+
+  *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+  html { scroll-behavior: smooth; }
+
+  body {
+    background: var(--bg-primary);
+    color: var(--text-primary);
+    font-family: 'Source Sans 3', sans-serif;
+    font-weight: 300;
+    line-height: 1.7;
+    overflow-x: hidden;
+  }
+
+  /* ── SCROLLBAR ── */
+  ::-webkit-scrollbar { width: 6px; }
+  ::-webkit-scrollbar-track { background: var(--bg-primary); }
+  ::-webkit-scrollbar-thumb { background: var(--accent-blue-dim); border-radius: 3px; }
+
+  /* ── CANVAS BG ── */
+  #bg-canvas {
+    position: fixed; inset: 0; z-index: 0;
+    pointer-events: none; opacity: 0.4;
+  }
+
+  /* ── NAV ── */
+  nav {
+    position: fixed; top: 0; left: 0; right: 0; z-index: 100;
+    backdrop-filter: blur(20px);
+    background: rgba(10, 13, 20, 0.85);
+    border-bottom: 1px solid var(--border);
+    padding: 0 2rem;
+    display: flex; align-items: center; justify-content: space-between;
+    height: 64px;
+    transition: all 0.3s;
+  }
+  nav.scrolled { background: rgba(10, 13, 20, 0.97); }
+
+  .nav-brand {
+    display: flex; align-items: center; gap: 12px;
+    text-decoration: none;
+  }
+  .nav-logo {
+    width: 36px; height: 36px;
+    border: 1.5px solid var(--accent-blue);
+    border-radius: 6px;
+    display: flex; align-items: center; justify-content: center;
+    font-family: 'Playfair Display', serif;
+    font-size: 14px; font-weight: 700;
+    color: var(--accent-blue);
+    letter-spacing: 0.5px;
+  }
+  .nav-title {
+    font-family: 'Source Sans 3', sans-serif;
+    font-weight: 600; font-size: 13px;
+    color: var(--text-secondary);
+    letter-spacing: 1.5px;
+    text-transform: uppercase;
+  }
+
+  .nav-links {
+    display: flex; gap: 2rem; list-style: none;
+  }
+  .nav-links a {
+    color: var(--text-secondary);
+    text-decoration: none;
+    font-size: 13px; font-weight: 400;
+    letter-spacing: 0.8px;
+    text-transform: uppercase;
+    transition: color 0.2s;
+    position: relative;
+  }
+  .nav-links a::after {
+    content: '';
+    position: absolute; bottom: -4px; left: 0; right: 0;
+    height: 1px; background: var(--accent-blue);
+    transform: scaleX(0); transition: transform 0.2s;
+  }
+  .nav-links a:hover { color: var(--accent-blue); }
+  .nav-links a:hover::after { transform: scaleX(1); }
+
+  .hamburger {
+    display: none; flex-direction: column; gap: 5px; cursor: pointer; padding: 4px;
+  }
+  .hamburger span {
+    display: block; width: 24px; height: 1.5px;
+    background: var(--text-secondary); transition: all 0.3s;
+  }
+
+  /* ── SECTIONS ── */
+  section { position: relative; z-index: 1; }
+
+  /* ── HERO ── */
+  #hero {
+    min-height: 100vh;
+    display: flex; flex-direction: column;
+    align-items: center; justify-content: center;
+    text-align: center;
+    padding: 100px 2rem 4rem;
+    position: relative; overflow: hidden;
+  }
+
+  .hero-eyebrow {
+    font-family: 'JetBrains Mono', monospace;
+    font-size: 11px; letter-spacing: 3px;
+    color: var(--accent-blue);
+    text-transform: uppercase;
+    margin-bottom: 1.5rem;
+    opacity: 0;
+    animation: fadeUp 0.8s 0.2s forwards;
+  }
+
+  .hero-title {
+    font-family: 'Playfair Display', serif;
+    font-size: clamp(3rem, 8vw, 6.5rem);
+    font-weight: 700;
+    line-height: 1.05;
+    letter-spacing: -1px;
+    margin-bottom: 0.5rem;
+    opacity: 0;
+    animation: fadeUp 0.8s 0.4s forwards;
+  }
+  .hero-title span { color: var(--accent-blue); }
+
+  .hero-subtitle {
+    font-family: 'Playfair Display', serif;
+    font-size: clamp(1.2rem, 3vw, 2rem);
+    font-weight: 400;
+    color: var(--text-secondary);
+    font-style: italic;
+    margin-bottom: 2.5rem;
+    opacity: 0;
+    animation: fadeUp 0.8s 0.6s forwards;
+  }
+
+  .hero-meta {
+    display: flex; gap: 2rem; justify-content: center; flex-wrap: wrap;
+    margin-bottom: 3rem;
+    opacity: 0;
+    animation: fadeUp 0.8s 0.8s forwards;
+  }
+  .hero-meta-item {
+    font-family: 'JetBrains Mono', monospace;
+    font-size: 11px; color: var(--text-muted);
+    letter-spacing: 1px;
+    display: flex; align-items: center; gap: 8px;
+  }
+  .hero-meta-item::before {
+    content: ''; width: 20px; height: 1px; background: var(--accent-blue);
+  }
+
+  .hero-cta {
+    display: flex; gap: 1rem; justify-content: center; flex-wrap: wrap;
+    opacity: 0;
+    animation: fadeUp 0.8s 1s forwards;
+  }
+
+  .btn-primary {
+    padding: 14px 32px;
+    background: transparent;
+    border: 1px solid var(--accent-blue);
+    color: var(--accent-blue);
+    font-family: 'Source Sans 3', sans-serif;
+    font-size: 13px; font-weight: 600;
+    letter-spacing: 1.5px; text-transform: uppercase;
+    text-decoration: none; cursor: pointer;
+    transition: all 0.3s;
+    position: relative; overflow: hidden;
+  }
+  .btn-primary::before {
+    content: '';
+    position: absolute; inset: 0;
+    background: var(--accent-blue);
+    transform: translateX(-100%);
+    transition: transform 0.3s;
+    z-index: -1;
+  }
+  .btn-primary:hover { color: var(--bg-primary); }
+  .btn-primary:hover::before { transform: translateX(0); }
+
+  .btn-ghost {
+    padding: 14px 32px;
+    background: transparent;
+    border: 1px solid var(--border-strong);
+    color: var(--text-secondary);
+    font-family: 'Source Sans 3', sans-serif;
+    font-size: 13px; font-weight: 400;
+    letter-spacing: 1.5px; text-transform: uppercase;
+    text-decoration: none; cursor: pointer;
+    transition: all 0.3s;
+  }
+  .btn-ghost:hover { border-color: var(--accent-blue); color: var(--accent-blue); }
+
+  /* ── 3D ENGINE CANVAS ── */
+  #engine-hero-canvas {
+    width: 340px; height: 340px;
+    margin: 3rem auto 0;
+    opacity: 0;
+    animation: fadeUp 1s 1.2s forwards;
+    position: relative;
+  }
+  #engine-hero-canvas canvas { border-radius: 50%; }
+  .canvas-label {
+    position: absolute; bottom: -28px; left: 50%; transform: translateX(-50%);
+    font-family: 'JetBrains Mono', monospace;
+    font-size: 10px; color: var(--text-muted);
+    letter-spacing: 2px; white-space: nowrap;
+  }
+
+  /* ── SCROLL INDICATOR ── */
+  .scroll-hint {
+    position: absolute; bottom: 2.5rem; left: 50%; transform: translateX(-50%);
+    display: flex; flex-direction: column; align-items: center; gap: 8px;
+    opacity: 0; animation: fadeUp 1s 1.5s forwards;
+  }
+  .scroll-hint span {
+    font-family: 'JetBrains Mono', monospace;
+    font-size: 9px; letter-spacing: 3px;
+    color: var(--text-muted); text-transform: uppercase;
+  }
+  .scroll-line {
+    width: 1px; height: 50px;
+    background: linear-gradient(to bottom, var(--accent-blue), transparent);
+    animation: scrollPulse 2s infinite;
+  }
+
+  /* ── SECTION HEADERS ── */
+  .section-wrap {
+    max-width: 1200px; margin: 0 auto; padding: 100px 2rem;
+  }
+
+  .section-label {
+    font-family: 'JetBrains Mono', monospace;
+    font-size: 10px; letter-spacing: 4px;
+    color: var(--accent-blue);
+    text-transform: uppercase;
+    margin-bottom: 1rem;
+    display: flex; align-items: center; gap: 12px;
+  }
+  .section-label::before {
+    content: ''; width: 30px; height: 1px; background: var(--accent-blue);
+  }
+
+  .section-title {
+    font-family: 'Playfair Display', serif;
+    font-size: clamp(2rem, 4vw, 3rem);
+    font-weight: 700;
+    line-height: 1.15;
+    margin-bottom: 1.5rem;
+  }
+
+  .section-desc {
+    font-size: 1.05rem;
+    color: var(--text-secondary);
+    max-width: 640px;
+    line-height: 1.8;
+  }
+
+  /* ── DIVIDER ── */
+  .divider {
+    border: none;
+    border-top: 1px solid var(--border);
+    margin: 0;
+  }
+
+  /* ── HISTORIA ── */
+  #historia { background: var(--bg-secondary); }
+
+  .historia-grid {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 4rem;
+    align-items: center;
+    margin-top: 4rem;
+  }
+
+  .historia-text p {
+    color: var(--text-secondary);
+    margin-bottom: 1.2rem;
+    font-size: 1rem;
+    line-height: 1.85;
+  }
+  .historia-text p strong { color: var(--text-primary); font-weight: 600; }
+
+  .timeline {
+    display: flex; flex-direction: column; gap: 0;
+  }
+  .timeline-item {
+    display: grid;
+    grid-template-columns: 80px 1fr;
+    gap: 1.5rem;
+    padding-bottom: 2rem;
+    position: relative;
+  }
+  .timeline-item:not(:last-child)::after {
+    content: '';
+    position: absolute;
+    left: 39px; top: 28px; bottom: 0;
+    width: 1px;
+    background: var(--border);
+  }
+  .timeline-year {
+    font-family: 'JetBrains Mono', monospace;
+    font-size: 12px; font-weight: 500;
+    color: var(--accent-blue);
+    padding-top: 2px;
+    text-align: right;
+  }
+  .timeline-dot {
+    position: absolute;
+    left: 33px; top: 4px;
+    width: 13px; height: 13px;
+    border: 2px solid var(--accent-blue);
+    border-radius: 50%;
+    background: var(--bg-primary);
+  }
+  .timeline-dot.active { background: var(--accent-blue); }
+  .timeline-content h4 {
+    font-family: 'Playfair Display', serif;
+    font-size: 1rem; font-weight: 600;
+    margin-bottom: 0.3rem;
+  }
+  .timeline-content p {
+    font-size: 0.9rem; color: var(--text-secondary); line-height: 1.6;
+  }
+
+  /* ── MOTOR 3D INTERATIVO ── */
+  #modelo3d {
+    background: var(--bg-primary);
+  }
+
+  .engine-viewer {
+    margin-top: 4rem;
+    background: var(--bg-card);
+    border: 1px solid var(--border);
+    border-radius: 4px;
+    padding: 2rem;
+    position: relative;
+    overflow: hidden;
+  }
+  .engine-viewer::before {
+    content: '';
+    position: absolute; inset: 0;
+    background: radial-gradient(ellipse at center, var(--accent-blue-glow) 0%, transparent 70%);
+    pointer-events: none;
+  }
+
+  .viewer-header {
+    display: flex; justify-content: space-between; align-items: center;
+    margin-bottom: 1.5rem;
+    padding-bottom: 1rem;
+    border-bottom: 1px solid var(--border);
+  }
+  .viewer-header h3 {
+    font-family: 'JetBrains Mono', monospace;
+    font-size: 12px; letter-spacing: 2px;
+    color: var(--accent-blue); text-transform: uppercase;
+  }
+  .viewer-controls { display: flex; gap: 0.5rem; }
+  .vbtn {
+    padding: 6px 14px;
+    background: transparent;
+    border: 1px solid var(--border-strong);
+    color: var(--text-secondary);
+    font-family: 'JetBrains Mono', monospace;
+    font-size: 10px; letter-spacing: 1px;
+    cursor: pointer; transition: all 0.2s;
+    border-radius: 2px;
+  }
+  .vbtn:hover, .vbtn.active { border-color: var(--accent-blue); color: var(--accent-blue); }
+
+  #main3d { width: 100%; height: 450px; position: relative; }
+  #main3d canvas { width: 100% !important; height: 100% !important; }
+
+  .viewer-info {
+    display: grid; grid-template-columns: repeat(4, 1fr);
+    gap: 1rem; margin-top: 1.5rem;
+    padding-top: 1.5rem;
+    border-top: 1px solid var(--border);
+  }
+  .vinfo-item { text-align: center; }
+  .vinfo-label {
+    font-family: 'JetBrains Mono', monospace;
+    font-size: 9px; letter-spacing: 2px;
+    color: var(--text-muted); text-transform: uppercase;
+    margin-bottom: 4px;
+  }
+  .vinfo-value {
+    font-family: 'Playfair Display', serif;
+    font-size: 1.3rem; color: var(--accent-blue);
+  }
+
+  /* ── COMPONENTES ── */
+  #componentes { background: var(--bg-secondary); }
+
+  .comp-grid {
+    display: grid; grid-template-columns: repeat(3, 1fr);
+    gap: 1.5px; margin-top: 4rem;
+    border: 1.5px solid var(--border);
+  }
+
+  .comp-card {
+    background: var(--bg-card);
+    padding: 2rem;
+    transition: all 0.3s;
+    position: relative; cursor: default;
+    overflow: hidden;
+  }
+  .comp-card::before {
+    content: '';
+    position: absolute; top: 0; left: 0; right: 0;
+    height: 2px; background: var(--accent-blue);
+    transform: scaleX(0);
+    transition: transform 0.3s;
+  }
+  .comp-card:hover { background: var(--bg-card-hover); }
+  .comp-card:hover::before { transform: scaleX(1); }
+
+  .comp-number {
+    font-family: 'JetBrains Mono', monospace;
+    font-size: 10px; letter-spacing: 2px;
+    color: var(--text-muted); margin-bottom: 1rem;
+  }
+  .comp-icon {
+    font-size: 2rem; margin-bottom: 1rem;
+    display: block;
+  }
+  .comp-name {
+    font-family: 'Playfair Display', serif;
+    font-size: 1.2rem; font-weight: 600;
+    margin-bottom: 0.75rem;
+  }
+  .comp-desc {
+    font-size: 0.9rem; color: var(--text-secondary);
+    line-height: 1.7;
+  }
+  .comp-detail {
+    margin-top: 1rem;
+    padding-top: 1rem;
+    border-top: 1px solid var(--border);
+    font-family: 'JetBrains Mono', monospace;
+    font-size: 10px; color: var(--accent-blue);
+    letter-spacing: 1px;
+  }
+
+  /* ── FUNCIONAMENTO ── */
+  #funcionamento { background: var(--bg-primary); }
+
+  .cycle-container {
+    margin-top: 4rem;
+    display: grid; grid-template-columns: 1fr 1fr;
+    gap: 3rem; align-items: start;
+  }
+
+  .cycle-visual {
+    position: sticky; top: 100px;
+    background: var(--bg-card);
+    border: 1px solid var(--border);
+    border-radius: 4px;
+    padding: 2rem;
+    text-align: center;
+  }
+
+  #cycle-canvas { width: 100%; max-width: 380px; }
+
+  .cycle-phase-label {
+    margin-top: 1.5rem;
+    font-family: 'Playfair Display', serif;
+    font-size: 1.1rem;
+    color: var(--accent-blue);
+  }
+  .cycle-phase-desc {
+    font-size: 0.875rem;
+    color: var(--text-secondary);
+    margin-top: 0.5rem;
+    line-height: 1.6;
+  }
+
+  .cycle-phases { display: flex; flex-direction: column; gap: 1rem; }
+
+  .phase-item {
+    background: var(--bg-card);
+    border: 1px solid var(--border);
+    padding: 1.5rem;
+    cursor: pointer;
+    transition: all 0.3s;
+    position: relative;
+    border-radius: 2px;
+  }
+  .phase-item.active {
+    border-color: var(--accent-blue);
+    background: var(--accent-blue-glow);
+  }
+  .phase-item::before {
+    content: attr(data-n);
+    position: absolute; top: 1.5rem; right: 1.5rem;
+    font-family: 'Playfair Display', serif;
+    font-size: 3rem; font-weight: 700;
+    color: var(--border);
+    line-height: 1;
+  }
+  .phase-item.active::before { color: var(--accent-blue-glow); }
+
+  .phase-num {
+    font-family: 'JetBrains Mono', monospace;
+    font-size: 10px; letter-spacing: 2px;
+    color: var(--accent-blue); margin-bottom: 0.5rem;
+  }
+  .phase-title {
+    font-family: 'Playfair Display', serif;
+    font-size: 1.1rem; font-weight: 600;
+    margin-bottom: 0.5rem;
+  }
+  .phase-text { font-size: 0.9rem; color: var(--text-secondary); line-height: 1.6; }
+
+  /* ── MODELOS ── */
+  #modelos { background: var(--bg-secondary); }
+
+  .models-grid {
+    display: grid;
+    grid-template-columns: repeat(3, 1fr);
+    gap: 1.5rem; margin-top: 4rem;
+  }
+
+  .model-card {
+    background: var(--bg-card);
+    border: 1px solid var(--border);
+    overflow: hidden;
+    transition: all 0.35s;
+  }
+  .model-card:hover { border-color: var(--accent-blue); transform: translateY(-4px); }
+
+  .model-thumb {
+    height: 180px;
+    position: relative; overflow: hidden;
+    background: var(--bg-primary);
+    display: flex; align-items: center; justify-content: center;
+  }
+  .model-thumb canvas { position: absolute; inset: 0; }
+
+  .model-body { padding: 1.5rem; }
+  .model-year {
+    font-family: 'JetBrains Mono', monospace;
+    font-size: 10px; letter-spacing: 2px;
+    color: var(--accent-blue); margin-bottom: 0.5rem;
+  }
+  .model-name {
+    font-family: 'Playfair Display', serif;
+    font-size: 1.15rem; font-weight: 600;
+    margin-bottom: 0.5rem;
+  }
+  .model-desc {
+    font-size: 0.875rem; color: var(--text-secondary); line-height: 1.6;
+    margin-bottom: 1rem;
+  }
+  .model-specs {
+    display: flex; gap: 1rem;
+    padding-top: 1rem;
+    border-top: 1px solid var(--border);
+  }
+  .spec { flex: 1; }
+  .spec-label {
+    font-size: 9px; letter-spacing: 1px;
+    color: var(--text-muted); text-transform: uppercase;
+    font-family: 'JetBrains Mono', monospace;
+  }
+  .spec-value { font-size: 0.95rem; color: var(--text-primary); font-weight: 600; }
+
+  /* ── PROBLEMAS ── */
+  #problemas { background: var(--bg-primary); }
+
+  .problems-layout {
+    display: grid;
+    grid-template-columns: 1fr 1.4fr;
+    gap: 4rem; align-items: start;
+    margin-top: 4rem;
+  }
+
+  .problem-list { display: flex; flex-direction: column; gap: 0; }
+
+  .prob-item {
+    padding: 1.5rem;
+    border: 1px solid var(--border);
+    border-bottom: none;
+    cursor: pointer;
+    transition: all 0.2s;
+    display: grid;
+    grid-template-columns: 40px 1fr;
+    gap: 1rem; align-items: center;
+  }
+  .prob-item:last-child { border-bottom: 1px solid var(--border); }
+  .prob-item.active { background: var(--bg-card); border-color: var(--accent-blue); }
+  .prob-item.active + .prob-item { border-top-color: var(--accent-blue); }
+
+  .prob-icon { font-size: 1.4rem; }
+  .prob-title { font-family: 'Playfair Display', serif; font-size: 1rem; font-weight: 600; }
+  .prob-sub { font-size: 0.8rem; color: var(--text-muted); }
+
+  .prob-detail-panel {
+    background: var(--bg-card);
+    border: 1px solid var(--border);
+    padding: 2.5rem;
+    min-height: 360px;
+    position: relative;
+  }
+  .pdp-tag {
+    font-family: 'JetBrains Mono', monospace;
+    font-size: 10px; letter-spacing: 2px;
+    color: var(--accent-blue); margin-bottom: 1rem;
+  }
+  .pdp-title {
+    font-family: 'Playfair Display', serif;
+    font-size: 1.5rem; font-weight: 700;
+    margin-bottom: 1rem;
+  }
+  .pdp-text { font-size: 0.95rem; color: var(--text-secondary); line-height: 1.8; }
+  .pdp-tags {
+    display: flex; flex-wrap: wrap; gap: 0.5rem;
+    margin-top: 1.5rem;
+  }
+  .pdp-tag-item {
+    padding: 4px 10px;
+    border: 1px solid var(--border-strong);
+    font-family: 'JetBrains Mono', monospace;
+    font-size: 10px; color: var(--text-secondary);
+    border-radius: 2px;
+  }
+
+  /* ── COMPARATIVO ── */
+  #comparativo { background: var(--bg-secondary); }
+
+  .compare-table {
+    margin-top: 4rem;
+    border: 1px solid var(--border);
+    overflow: hidden;
+    border-radius: 2px;
+  }
+  .ct-header {
+    display: grid;
+    grid-template-columns: 2fr 1fr 1fr;
+    background: var(--bg-card);
+    border-bottom: 2px solid var(--border-strong);
+  }
+  .ct-col {
+    padding: 1.25rem 1.5rem;
+    font-family: 'JetBrains Mono', monospace;
+    font-size: 11px; letter-spacing: 1.5px;
+    text-transform: uppercase;
+  }
+  .ct-col.wankel { color: var(--accent-blue); border-bottom: 2px solid var(--accent-blue); margin-bottom: -2px; }
+  .ct-col.conv { color: var(--text-secondary); }
+
+  .ct-row {
+    display: grid;
+    grid-template-columns: 2fr 1fr 1fr;
+    border-bottom: 1px solid var(--border);
+    transition: background 0.2s;
+  }
+  .ct-row:last-child { border-bottom: none; }
+  .ct-row:hover { background: var(--bg-card); }
+
+  .ct-cell {
+    padding: 1rem 1.5rem;
+    font-size: 0.9rem;
+    display: flex; align-items: center; gap: 8px;
+  }
+  .ct-cell.feature { color: var(--text-secondary); font-weight: 400; }
+  .ct-cell.wankel-val { color: var(--text-primary); }
+  .ct-cell.conv-val { color: var(--text-secondary); }
+  .badge {
+    display: inline-block; padding: 2px 8px;
+    font-family: 'JetBrains Mono', monospace;
+    font-size: 9px; letter-spacing: 1px;
+    border-radius: 2px;
+  }
+  .badge.good { background: rgba(90,180,245,0.15); color: var(--accent-blue); }
+  .badge.bad { background: rgba(200,80,80,0.12); color: #e07070; }
+  .badge.neutral { background: var(--gold-dim); color: var(--gold); }
+
+  /* ── CONCLUSÃO ── */
+  #conclusao { background: var(--bg-primary); }
+
+  .conclusao-inner {
+    max-width: 800px; margin: 0 auto;
+    text-align: center;
+    padding: 100px 2rem;
+  }
+  .conclusao-inner .section-label { justify-content: center; }
+  .conclusao-inner .section-label::before { display: none; }
+  .conclusao-text {
+    font-size: 1.1rem; color: var(--text-secondary); line-height: 1.9;
+    margin: 2rem 0;
+  }
+
+  .facens-badge {
+    display: inline-flex; align-items: center; gap: 1rem;
+    padding: 1.5rem 2.5rem;
+    border: 1px solid var(--border);
+    background: var(--bg-card);
+    margin-top: 3rem;
+  }
+  .fb-logo {
+    font-family: 'Playfair Display', serif;
+    font-size: 2rem; font-weight: 700;
+    color: var(--accent-blue);
+  }
+  .fb-info { text-align: left; }
+  .fb-school {
+    font-weight: 600; font-size: 1rem;
+  }
+  .fb-course { font-size: 0.85rem; color: var(--text-muted); }
+
+  /* ── FOOTER ── */
+  footer {
+    background: var(--bg-secondary);
+    border-top: 1px solid var(--border);
+    padding: 2rem;
+    text-align: center;
+    position: relative; z-index: 1;
+  }
+  footer p {
+    font-family: 'JetBrains Mono', monospace;
+    font-size: 10px; letter-spacing: 2px;
+    color: var(--text-muted);
+  }
+  footer span { color: var(--accent-blue); }
+
+  /* ── ANIMATIONS ── */
+  @keyframes fadeUp {
+    from { opacity: 0; transform: translateY(24px); }
+    to { opacity: 1; transform: translateY(0); }
+  }
+  @keyframes scrollPulse {
+    0%,100% { opacity: 1; }
+    50% { opacity: 0.3; }
+  }
+  @keyframes spin { to { transform: rotate(360deg); } }
+
+  .reveal {
+    opacity: 0; transform: translateY(30px);
+    transition: opacity 0.7s, transform 0.7s;
+  }
+  .reveal.visible { opacity: 1; transform: translateY(0); }
+
+  /* ── MOBILE ── */
+  @media (max-width: 900px) {
+    .nav-links { display: none; }
+    .nav-links.open {
+      display: flex; flex-direction: column;
+      position: fixed; inset: 64px 0 0;
+      background: var(--bg-primary);
+      padding: 2rem; gap: 2rem;
+      z-index: 99;
+    }
+    .nav-links.open a { font-size: 1.2rem; }
+    .hamburger { display: flex; }
+    .historia-grid { grid-template-columns: 1fr; }
+    .comp-grid { grid-template-columns: 1fr 1fr; }
+    .cycle-container { grid-template-columns: 1fr; }
+    .cycle-visual { position: static; }
+    .models-grid { grid-template-columns: 1fr; }
+    .problems-layout { grid-template-columns: 1fr; }
+    .viewer-info { grid-template-columns: repeat(2,1fr); }
+    .ct-header, .ct-row { grid-template-columns: 1.5fr 1fr 1fr; }
+  }
+  @media (max-width: 600px) {
+    .comp-grid { grid-template-columns: 1fr; }
+    #engine-hero-canvas { width: 260px; height: 260px; }
+  }
+</style>
+</head>
+<body>
+
+<canvas id="bg-canvas"></canvas>
+
+<!-- NAV -->
+<nav id="navbar">
+  <a href="#hero" class="nav-brand">
+    <div class="nav-logo">MW</div>
+    <div class="nav-title">Motor Wankel</div>
+  </a>
+  <ul class="nav-links" id="navLinks">
+    <li><a href="#historia">História</a></li>
+    <li><a href="#componentes">Componentes</a></li>
+    <li><a href="#funcionamento">Funcionamento</a></li>
+    <li><a href="#modelos">Modelos</a></li>
+    <li><a href="#problemas">Problemas</a></li>
+    <li><a href="#comparativo">Comparativo</a></li>
+  </ul>
+  <div class="hamburger" id="hamburger">
+    <span></span><span></span><span></span>
+  </div>
+</nav>
+
+<!-- HERO -->
+<section id="hero">
+  <p class="hero-eyebrow">Faculdade de Engenharia de Sorocaba — FACENS</p>
+  <h1 class="hero-title">Motor <span>Wankel</span></h1>
+  <p class="hero-subtitle">O Motor Rotativo — Uma Revolução na Engenharia</p>
+  <div class="hero-meta">
+    <span class="hero-meta-item">Patente: 1954</span>
+    <span class="hero-meta-item">Inventor: Felix Wankel</span>
+    <span class="hero-meta-item">Ciclo: Otto Rotativo</span>
+    <span class="hero-meta-item">Câmara: Epitrocóide</span>
+  </div>
+  <div class="hero-cta">
+    <a href="#historia" class="btn-primary">Explorar</a>
+    <a href="#modelo3d" class="btn-ghost">Visualizar 3D</a>
+  </div>
+  <div id="engine-hero-canvas">
+    <canvas id="heroCanvas" width="340" height="340"></canvas>
+    <span class="canvas-label">// MODELO INTERATIVO — ARRASTE PARA GIRAR</span>
+  </div>
+  <div class="scroll-hint">
+    <div class="scroll-line"></div>
+    <span>Role para baixo</span>
+  </div>
+</section>
+
+<!-- HISTÓRIA -->
+<section id="historia">
+  <div class="section-wrap">
+    <div class="section-label reveal">01 — História</div>
+    <h2 class="section-title reveal">Da Patente ao<br>Automóvel de Corrida</h2>
+    <div class="historia-grid">
+      <div class="historia-text reveal">
+        <p>O motor Wankel foi concebido pelo engenheiro alemão <strong>Felix Wankel</strong> na década de 1950, representando uma ruptura radical com o paradigma do motor de pistão alternativo que dominava a engenharia automotiva há mais de um século.</p>
+        <p>Em parceria com a <strong>NSU Motorenwerke</strong>, Wankel desenvolveu um motor onde a câmara de combustão não possui pistões lineares, mas sim um rotor triangular de movimento excêntrico que realiza simultaneamente as quatro fases do ciclo Otto.</p>
+        <p>A <strong>Mazda</strong> foi a fabricante que mais explorou comercialmente o motor, equipando desde o esportivo Cosmo Sport (1967) até o icônico RX-7 e RX-8, tornando-se sinônimo da tecnologia rotativa no mercado automotivo mundial.</p>
+        <p>Atualmente, a tecnologia renasceu em aplicações como <strong>gerador de faixa estendida</strong> no Mazda MX-30 R-EV (2023), combinado à eletrificação.</p>
+      </div>
+      <div class="timeline reveal">
+        <div class="timeline-item">
+          <div class="timeline-year">1951</div>
+          <div class="timeline-dot active"></div>
+          <div class="timeline-content">
+            <h4>Conceito Inicial</h4>
+            <p>Felix Wankel inicia os estudos do motor rotativo na NSU, Alemanha.</p>
+          </div>
+        </div>
+        <div class="timeline-item">
+          <div class="timeline-year">1957</div>
+          <div class="timeline-dot"></div>
+          <div class="timeline-content">
+            <h4>Primeiro Protótipo</h4>
+            <p>Primeiro motor funcional roda em bancada de testes na NSU.</p>
+          </div>
+        </div>
+        <div class="timeline-item">
+          <div class="timeline-year">1964</div>
+          <div class="timeline-dot"></div>
+          <div class="timeline-content">
+            <h4>Licença Mazda</h4>
+            <p>Mazda adquire licença e inicia desenvolvimento próprio com o motor 10A.</p>
+          </div>
+        </div>
+        <div class="timeline-item">
+          <div class="timeline-year">1967</div>
+          <div class="timeline-dot"></div>
+          <div class="timeline-content">
+            <h4>Cosmo Sport 110S</h4>
+            <p>Primeiro carro de produção em série com motor Wankel no mundo.</p>
+          </div>
+        </div>
+        <div class="timeline-item">
+          <div class="timeline-year">1978</div>
+          <div class="timeline-dot"></div>
+          <div class="timeline-content">
+            <h4>Mazda RX-7</h4>
+            <p>Lançamento do RX-7, esportivo que imortalizou o motor rotativo.</p>
+          </div>
+        </div>
+        <div class="timeline-item">
+          <div class="timeline-year">2003</div>
+          <div class="timeline-dot"></div>
+          <div class="timeline-content">
+            <h4>Mazda RX-8</h4>
+            <p>Motor RENESIS — tecnologia mais avançada do motor Wankel automotivo.</p>
+          </div>
+        </div>
+        <div class="timeline-item">
+          <div class="timeline-year">2023</div>
+          <div class="timeline-dot active"></div>
+          <div class="timeline-content">
+            <h4>MX-30 R-EV</h4>
+            <p>Renascimento como gerador de range extender em veículo híbrido plug-in.</p>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+</section>
+
+<hr class="divider">
+
+<!-- MODELO 3D -->
+<section id="modelo3d">
+  <div class="section-wrap">
+    <div class="section-label reveal">02 — Visualização</div>
+    <h2 class="section-title reveal">Modelo Tridimensional<br>Interativo</h2>
+    <p class="section-desc reveal">Explore a geometria única do motor Wankel. Use os controles para alternar entre vistas e animações do ciclo de funcionamento.</p>
+    <div class="engine-viewer reveal">
+      <div class="viewer-header">
+        <h3>// WANKEL ENGINE — RENDER 3D</h3>
+        <div class="viewer-controls">
+          <button class="vbtn active" onclick="setView('perspective')">Perspectiva</button>
+          <button class="vbtn" onclick="setView('front')">Frontal</button>
+          <button class="vbtn" onclick="setView('exploded')">Explodida</button>
+          <button class="vbtn" id="animBtn" onclick="toggleAnim()">⏸ Pausar</button>
+        </div>
+      </div>
+      <div id="main3d">
+        <canvas id="engine3d" width="900" height="450"></canvas>
+      </div>
+      <div class="viewer-info">
+        <div class="vinfo-item">
+          <div class="vinfo-label">Câmara</div>
+          <div class="vinfo-value">Epitrocóide</div>
+        </div>
+        <div class="vinfo-item">
+          <div class="vinfo-label">Rotor</div>
+          <div class="vinfo-value">Deltóide</div>
+        </div>
+        <div class="vinfo-item">
+          <div class="vinfo-label">Razão eixo/rotor</div>
+          <div class="vinfo-value">3:1</div>
+        </div>
+        <div class="vinfo-item">
+          <div class="vinfo-label">Fases simultâneas</div>
+          <div class="vinfo-value">3</div>
+        </div>
+      </div>
+    </div>
+  </div>
+</section>
+
+<hr class="divider">
+
+<!-- COMPONENTES -->
+<section id="componentes">
+  <div class="section-wrap">
+    <div class="section-label reveal">03 — Componentes</div>
+    <h2 class="section-title reveal">Anatomia do<br>Motor Wankel</h2>
+    <p class="section-desc reveal">Cada peça desempenha um papel único nesta arquitetura sem paralelo na engenharia de motores de combustão.</p>
+    <div class="comp-grid reveal">
+      <div class="comp-card">
+        <div class="comp-number">01</div>
+        <span class="comp-icon">⬡</span>
+        <div class="comp-name">Rotor Triangular</div>
+        <div class="comp-desc">Peça central do motor, com formato de triângulo curvilíneo (deltóide). Seus três vértices deslizam pela câmara, criando três câmaras de volume variável que realizam as fases do ciclo simultaneamente.</div>
+        <div class="comp-detail">Material: Ferro fundido nodular / Liga de alumínio</div>
+      </div>
+      <div class="comp-card">
+        <div class="comp-number">02</div>
+        <span class="comp-icon">◎</span>
+        <div class="comp-name">Câmara Epitrocóide</div>
+        <div class="comp-desc">O bloco do motor possui formato de epitrocóide — curva matemática gerada pelo ponto de uma circunferência que rola externamente a outra. Esta geometria garante o movimento preciso e contínuo do rotor.</div>
+        <div class="comp-detail">Perfil: Epitrocóide de 2 lóbulos</div>
+      </div>
+      <div class="comp-card">
+        <div class="comp-number">03</div>
+        <span class="comp-icon">⊕</span>
+        <div class="comp-name">Eixo Excêntrico</div>
+        <div class="comp-desc">Equivalente ao virabrequim dos motores convencionais. Possui excêntricos que recebem o rotor, convertendo seu movimento orbital em rotação. Gira 3x mais rápido que o rotor, resultando em alta rotação de saída.</div>
+        <div class="comp-detail">Relação: 3:1 (eixo:rotor)</div>
+      </div>
+      <div class="comp-card">
+        <div class="comp-number">04</div>
+        <span class="comp-icon">▬</span>
+        <div class="comp-name">Vedações de Ápice</div>
+        <div class="comp-desc">Peças de vedação nos vértices do rotor que mantêm contato constante com a parede da câmara. São o componente mais crítico e sujeito a desgaste. Material deve suportar alta temperatura e pressão com lubrificação mínima.</div>
+        <div class="comp-detail">Principal ponto de falha crônica</div>
+      </div>
+      <div class="comp-card">
+        <div class="comp-number">05</div>
+        <span class="comp-icon">⊞</span>
+        <div class="comp-name">Tampas Laterais</div>
+        <div class="comp-desc">Fecham as câmaras nas laterais, contendo as faces do rotor. Contêm as portas de admissão e escapamento periféricas ou laterais. Fabricadas com alta precisão para garantir vedação sem folgas excessivas.</div>
+        <div class="comp-detail">Contém as janelas de admissão/escape</div>
+      </div>
+      <div class="comp-card">
+        <div class="comp-number">06</div>
+        <span class="comp-icon">✦</span>
+        <div class="comp-name">Velas de Ignição</div>
+        <div class="comp-desc">Motores Wankel geralmente utilizam duas velas por rotor (dianteira e traseira) para garantir ignição eficiente da câmara alongada. O timing preciso é essencial dado o formato irregular da câmara de combustão.</div>
+        <div class="comp-detail">2 velas por rotor — leading/trailing</div>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- FUNCIONAMENTO -->
+<section id="funcionamento">
+  <div class="section-wrap">
+    <div class="section-label reveal">04 — Ciclo de Operação</div>
+    <h2 class="section-title reveal">Como Funciona o<br>Ciclo Rotativo</h2>
+    <p class="section-desc reveal">As quatro fases do ciclo Otto ocorrem simultaneamente nos três compartimentos criados pelo rotor, gerando potência de forma contínua.</p>
+    <div class="cycle-container">
+      <div class="cycle-visual reveal">
+        <canvas id="cycle-canvas" width="360" height="360"></canvas>
+        <div class="cycle-phase-label" id="cyclePhaseName">Admissão</div>
+        <div class="cycle-phase-desc" id="cyclePhaseDesc">A mistura ar-combustível entra pela porta de admissão enquanto o compartimento expande.</div>
+        <div style="margin-top:1rem; display:flex; gap:0.5rem; justify-content:center; flex-wrap:wrap;" id="phaseIndicators">
+          <button class="vbtn active" onclick="setCyclePhase(0)">Admissão</button>
+          <button class="vbtn" onclick="setCyclePhase(1)">Compressão</button>
+          <button class="vbtn" onclick="setCyclePhase(2)">Expansão</button>
+          <button class="vbtn" onclick="setCyclePhase(3)">Escape</button>
+        </div>
+      </div>
+      <div class="cycle-phases">
+        <div class="phase-item active" data-n="1" onclick="setCyclePhase(0)">
+          <div class="phase-num">FASE 01 / 04</div>
+          <div class="phase-title">Admissão</div>
+          <div class="phase-text">O rotor cria um compartimento que expande progressivamente. A pressão negativa gerada aspira a mistura ar-combustível pela porta de admissão. O processo é contínuo e suave, sem a descontinuidade dos pistões.</div>
+        </div>
+        <div class="phase-item" data-n="2" onclick="setCyclePhase(1)">
+          <div class="phase-num">FASE 02 / 04</div>
+          <div class="phase-title">Compressão</div>
+          <div class="phase-text">O compartimento carregado com a mistura começa a diminuir à medida que o rotor avança. A mistura é comprimida até atingir a proporção adequada para ignição. A taxa de compressão típica é de 8,5:1 a 10:1.</div>
+        </div>
+        <div class="phase-item" data-n="3" onclick="setCyclePhase(2)">
+          <div class="phase-num">FASE 03 / 04</div>
+          <div class="phase-title">Expansão (Potência)</div>
+          <div class="phase-text">As velas disparam e ignicionam a mistura comprimida. A expansão dos gases empurra o rotor, gerando torque no eixo excêntrico. Esta é a fase de potência — gera força de forma mais suave que pistões convencionais.</div>
+        </div>
+        <div class="phase-item" data-n="4" onclick="setCyclePhase(3)">
+          <div class="phase-num">FASE 04 / 04</div>
+          <div class="phase-title">Escape</div>
+          <div class="phase-text">Os gases queimados são expelidos pela porta de escape. O compartimento diminui, forçando a saída dos gases residuais. Ao mesmo tempo, os outros dois compartimentos já realizam suas respectivas fases — o ciclo é contínuo.</div>
+        </div>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- MODELOS -->
+<section id="modelos">
+  <div class="section-wrap">
+    <div class="section-label reveal">05 — Aplicações</div>
+    <h2 class="section-title reveal">Modelos que Usaram<br>o Motor Wankel</h2>
+    <p class="section-desc reveal">Da aviação ao automobilismo, o motor rotativo encontrou aplicações diversas ao longo de seis décadas de história.</p>
+    <div class="models-grid">
+      <div class="model-card reveal">
+        <div class="model-thumb" id="thumb1">
+          <canvas id="carCanvas1" width="320" height="180"></canvas>
+        </div>
+        <div class="model-body">
+          <div class="model-year">1967 — MAZDA</div>
+          <div class="model-name">Cosmo Sport 110S</div>
+          <div class="model-desc">Primeiro automóvel de produção em série com motor Wankel. Pioneiro que provou a viabilidade da tecnologia no uso cotidiano.</div>
+          <div class="model-specs">
+            <div class="spec"><div class="spec-label">Motor</div><div class="spec-value">10A — 2 rotores</div></div>
+            <div class="spec"><div class="spec-label">Potência</div><div class="spec-value">110 cv</div></div>
+          </div>
+        </div>
+      </div>
+      <div class="model-card reveal">
+        <div class="model-thumb" id="thumb2">
+          <canvas id="carCanvas2" width="320" height="180"></canvas>
+        </div>
+        <div class="model-body">
+          <div class="model-year">1978–1985 / 1985–1991 — MAZDA</div>
+          <div class="model-name">RX-7 (SA / FC)</div>
+          <div class="model-desc">O esportivo rotativo mais icônico do mundo. Levíssimo e ágil, conquistou o mercado global e o automobilismo com o 12A e 13B turbo.</div>
+          <div class="model-specs">
+            <div class="spec"><div class="spec-label">Motor</div><div class="spec-value">13B-T — 2 rotores</div></div>
+            <div class="spec"><div class="spec-label">Potência</div><div class="spec-value">até 200 cv</div></div>
+          </div>
+        </div>
+      </div>
+      <div class="model-card reveal">
+        <div class="model-thumb" id="thumb3">
+          <canvas id="carCanvas3" width="320" height="180"></canvas>
+        </div>
+        <div class="model-body">
+          <div class="model-year">1991–2002 — MAZDA</div>
+          <div class="model-name">RX-7 FD (Série III)</div>
+          <div class="model-desc">A obra-prima. Motor 13B-REW biturbo sequencial, considerado um dos melhores motores da história. Potência oficial 255 cv, real até 280 cv.</div>
+          <div class="model-specs">
+            <div class="spec"><div class="spec-label">Motor</div><div class="spec-value">13B-REW biturbo</div></div>
+            <div class="spec"><div class="spec-label">Potência</div><div class="spec-value">255 cv</div></div>
+          </div>
+        </div>
+      </div>
+      <div class="model-card reveal">
+        <div class="model-thumb" id="thumb4">
+          <canvas id="carCanvas4" width="320" height="180"></canvas>
+        </div>
+        <div class="model-body">
+          <div class="model-year">2003–2012 — MAZDA</div>
+          <div class="model-name">RX-8</div>
+          <div class="model-desc">Motor RENESIS, o mais refinado de todos. Portas laterais melhoraram emissões e consumo. 4 lugares reais, design inovador com portas suicidas.</div>
+          <div class="model-specs">
+            <div class="spec"><div class="spec-label">Motor</div><div class="spec-value">RENESIS 13B</div></div>
+            <div class="spec"><div class="spec-label">Potência</div><div class="spec-value">232 cv</div></div>
+          </div>
+        </div>
+      </div>
+      <div class="model-card reveal">
+        <div class="model-thumb" id="thumb5">
+          <canvas id="carCanvas5" width="320" height="180"></canvas>
+        </div>
+        <div class="model-body">
+          <div class="model-year">1974–1977 — CITROËN</div>
+          <div class="model-name">GS Birotor</div>
+          <div class="model-desc">A única incursão da Citroën no motor Wankel. Motor de 2 rotores licenciado da NSU/Comotor. Produção limitada e encerrada pela crise do petróleo.</div>
+          <div class="model-specs">
+            <div class="spec"><div class="spec-label">Motor</div><div class="spec-value">NSU-Comotor</div></div>
+            <div class="spec"><div class="spec-label">Potência</div><div class="spec-value">107 cv</div></div>
+          </div>
+        </div>
+      </div>
+      <div class="model-card reveal">
+        <div class="model-thumb" id="thumb6">
+          <canvas id="carCanvas6" width="320" height="180"></canvas>
+        </div>
+        <div class="model-body">
+          <div class="model-year">2023 — MAZDA</div>
+          <div class="model-name">MX-30 R-EV</div>
+          <div class="model-desc">Renascimento como gerador de range extender em PHEV. Motor monorrotor 8C de 830cc carrega as baterias em movimento. Nova vida para a tecnologia rotativa.</div>
+          <div class="model-specs">
+            <div class="spec"><div class="spec-label">Motor</div><div class="spec-value">8C monorrotor</div></div>
+            <div class="spec"><div class="spec-label">Sistema</div><div class="spec-value">PHEV 85 cv</div></div>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- PROBLEMAS -->
+<section id="problemas">
+  <div class="section-wrap">
+    <div class="section-label reveal">06 — Problemas Crônicos</div>
+    <h2 class="section-title reveal">Os Desafios que<br>Limitaram o Wankel</h2>
+    <p class="section-desc reveal">A genialidade da arquitetura rotativa veio acompanhada de problemas técnicos que foram o maior obstáculo para sua adoção massiva.</p>
+    <div class="problems-layout reveal">
+      <div class="problem-list" id="probList">
+        <div class="prob-item active" onclick="setProb(0)">
+          <div class="prob-icon">🔩</div>
+          <div>
+            <div class="prob-title">Vedações de Ápice</div>
+            <div class="prob-sub">Desgaste prematuro crítico</div>
+          </div>
+        </div>
+        <div class="prob-item" onclick="setProb(1)">
+          <div class="prob-icon">⛽</div>
+          <div>
+            <div class="prob-title">Consumo de Combustível</div>
+            <div class="prob-sub">Eficiência térmica inferior</div>
+          </div>
+        </div>
+        <div class="prob-item" onclick="setProb(2)">
+          <div class="prob-icon">💧</div>
+          <div>
+            <div class="prob-title">Consumo de Óleo</div>
+            <div class="prob-sub">Injeção de óleo no ciclo</div>
+          </div>
+        </div>
+        <div class="prob-item" onclick="setProb(3)">
+          <div class="prob-icon">🌡️</div>
+          <div>
+            <div class="prob-title">Superaquecimento</div>
+            <div class="prob-sub">Calor assimétrico na câmara</div>
+          </div>
+        </div>
+        <div class="prob-item" onclick="setProb(4)">
+          <div class="prob-icon">🌫️</div>
+          <div>
+            <div class="prob-title">Emissões</div>
+            <div class="prob-sub">HC elevado — câmara irregular</div>
+          </div>
+        </div>
+        <div class="prob-item" onclick="setProb(5)">
+          <div class="prob-icon">🔧</div>
+          <div>
+            <div class="prob-title">Manutenção</div>
+            <div class="prob-sub">Alta especialização exigida</div>
+          </div>
+        </div>
+      </div>
+      <div class="prob-detail-panel" id="probDetail">
+        <div class="pdp-tag">PROBLEMA CRÍTICO</div>
+        <div class="pdp-title" id="pdpTitle">Vedações de Ápice (Apex Seals)</div>
+        <div class="pdp-text" id="pdpText">As vedações de ápice são as peças nos três vértices do rotor que mantêm contato constante com a câmara epitrocóide. Este contato contínuo — ao contrário dos anéis de pistão que têm movimento alternado — gera desgaste extremo e uniforme.<br><br>Em temperaturas de operação, estas peças atingem mais de 400°C enquanto deslizam em alta velocidade. A lubrificação é injetada diretamente no ciclo (o óleo é consumido), e qualquer falha resulta em perda de compressão e falha catastrófica do motor.<br><br>Este foi o maior fator de limitação da vida útil dos motores Wankel e a razão principal pela qual a tecnologia não prevaleceu no mercado de massa.</div>
+        <div class="pdp-tags">
+          <span class="pdp-tag-item">Alta temperatura</span>
+          <span class="pdp-tag-item">Desgaste contínuo</span>
+          <span class="pdp-tag-item">Falha crítica</span>
+          <span class="pdp-tag-item">Lubrificação deficiente</span>
+        </div>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- COMPARATIVO -->
+<section id="comparativo">
+  <div class="section-wrap">
+    <div class="section-label reveal">07 — Análise</div>
+    <h2 class="section-title reveal">Wankel vs Motor<br>Convencional</h2>
+    <div class="compare-table reveal">
+      <div class="ct-header">
+        <div class="ct-col">Parâmetro</div>
+        <div class="ct-col wankel">Motor Wankel</div>
+        <div class="ct-col conv">Motor Pistão</div>
+      </div>
+      <div class="ct-row">
+        <div class="ct-cell feature">Peças móveis</div>
+        <div class="ct-cell wankel-val"><span class="badge good">Mínimas</span> ~3 peças</div>
+        <div class="ct-cell conv-val"><span class="badge bad">Muitas</span> 40+ peças</div>
+      </div>
+      <div class="ct-row">
+        <div class="ct-cell feature">Relação potência/peso</div>
+        <div class="ct-cell wankel-val"><span class="badge good">Excelente</span> ~1 cv/kg</div>
+        <div class="ct-cell conv-val"><span class="badge neutral">Boa</span> 0,6 cv/kg</div>
+      </div>
+      <div class="ct-row">
+        <div class="ct-cell feature">Vibrações</div>
+        <div class="ct-cell wankel-val"><span class="badge good">Mínimas</span> movimento suave</div>
+        <div class="ct-cell conv-val"><span class="badge bad">Significativas</span> alternativo</div>
+      </div>
+      <div class="ct-row">
+        <div class="ct-cell feature">Eficiência térmica</div>
+        <div class="ct-cell wankel-val"><span class="badge bad">~22–28%</span></div>
+        <div class="ct-cell conv-val"><span class="badge good">~35–45%</span></div>
+      </div>
+      <div class="ct-row">
+        <div class="ct-cell feature">Consumo de combustível</div>
+        <div class="ct-cell wankel-val"><span class="badge bad">Alto</span> +20–30%</div>
+        <div class="ct-cell conv-val"><span class="badge good">Referência</span></div>
+      </div>
+      <div class="ct-row">
+        <div class="ct-cell feature">Emissões HC</div>
+        <div class="ct-cell wankel-val"><span class="badge bad">Elevadas</span> câmara irregular</div>
+        <div class="ct-cell conv-val"><span class="badge good">Controladas</span></div>
+      </div>
+      <div class="ct-row">
+        <div class="ct-cell feature">Tamanho/compacidade</div>
+        <div class="ct-cell wankel-val"><span class="badge good">Muito compacto</span></div>
+        <div class="ct-cell conv-val"><span class="badge neutral">Maior</span></div>
+      </div>
+      <div class="ct-row">
+        <div class="ct-cell feature">Vida útil</div>
+        <div class="ct-cell wankel-val"><span class="badge bad">Menor</span> vedações</div>
+        <div class="ct-cell conv-val"><span class="badge good">Maior</span> 300k+ km</div>
+      </div>
+      <div class="ct-row">
+        <div class="ct-cell feature">Zona de potência</div>
+        <div class="ct-cell wankel-val"><span class="badge good">Altas rotações</span> 7000+ rpm</div>
+        <div class="ct-cell conv-val"><span class="badge neutral">Ampla faixa</span></div>
+      </div>
+      <div class="ct-row">
+        <div class="ct-cell feature">Torque baixo giro</div>
+        <div class="ct-cell wankel-val"><span class="badge bad">Deficiente</span></div>
+        <div class="ct-cell conv-val"><span class="badge good">Robusto</span></div>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- CONCLUSÃO -->
+<section id="conclusao">
+  <div class="conclusao-inner">
+    <div class="section-label reveal">08 — Conclusão</div>
+    <h2 class="section-title reveal">Um Legado de<br>Inovação Radical</h2>
+    <p class="conclusao-text reveal">
+      O motor Wankel representa um dos experimentos mais audaciosos da engenharia automotiva do século XX. Sua arquitetura elegante resolveu com maestria os problemas de vibração e complexidade mecânica dos motores convencionais, ao custo de desafios termodinâmicos que nunca foram completamente superados.
+    </p>
+    <p class="conclusao-text reveal">
+      Hoje, com o renascimento no MX-30 R-EV como gerador de range extender, o Wankel encontrou um nicho ideal: sua leveza e suavidade são vantagens sem a penalidade do consumo em uso automotivo direto. A história deste motor nos ensina que inovação radical raramente é uma vitória absoluta — é sempre uma troca de compromissos.
+    </p>
+    <div class="facens-badge reveal">
+      <div class="fb-logo">F</div>
+      <div class="fb-info">
+        <div class="fb-school">FACENS — Faculdade de Engenharia de Sorocaba</div>
+        <div class="fb-course">Trabalho Acadêmico — Engenharia • Tecnologia Automotiva</div>
+      </div>
+    </div>
+  </div>
+</section>
+
+<footer>
+  <p>Motor Wankel — <span>FACENS</span> · Trabalho Acadêmico · Todos os direitos reservados</p>
+</footer>
+
+<script>
+// ════════════════════════════════════════════
+// BG CANVAS — PARTÍCULAS
+// ════════════════════════════════════════════
+const bgC = document.getElementById('bg-canvas');
+const bgCtx = bgC.getContext('2d');
+let particles = [];
+
+function resizeBg() {
+  bgC.width = window.innerWidth;
+  bgC.height = window.innerHeight;
+}
+resizeBg();
+window.addEventListener('resize', resizeBg);
+
+for (let i = 0; i < 60; i++) {
+  particles.push({
+    x: Math.random() * window.innerWidth,
+    y: Math.random() * window.innerHeight,
+    r: Math.random() * 1.5 + 0.3,
+    vx: (Math.random() - 0.5) * 0.3,
+    vy: (Math.random() - 0.5) * 0.3,
+    a: Math.random()
+  });
+}
+
+function animBg() {
+  bgCtx.clearRect(0, 0, bgC.width, bgC.height);
+  particles.forEach(p => {
+    p.x += p.vx; p.y += p.vy;
+    if (p.x < 0) p.x = bgC.width;
+    if (p.x > bgC.width) p.x = 0;
+    if (p.y < 0) p.y = bgC.height;
+    if (p.y > bgC.height) p.y = 0;
+    bgCtx.beginPath();
+    bgCtx.arc(p.x, p.y, p.r, 0, Math.PI * 2);
+    bgCtx.fillStyle = `rgba(90,180,245,${p.a * 0.4})`;
+    bgCtx.fill();
+  });
+  // Draw connecting lines
+  particles.forEach((a, i) => {
+    particles.slice(i + 1).forEach(b => {
+      const d = Math.hypot(a.x - b.x, a.y - b.y);
+      if (d < 120) {
+        bgCtx.beginPath();
+        bgCtx.moveTo(a.x, a.y);
+        bgCtx.lineTo(b.x, b.y);
+        bgCtx.strokeStyle = `rgba(90,180,245,${0.08 * (1 - d/120)})`;
+        bgCtx.lineWidth = 0.5;
+        bgCtx.stroke();
+      }
+    });
+  });
+  requestAnimationFrame(animBg);
+}
+animBg();
+
+// ════════════════════════════════════════════
+// HERO CANVAS — MOTOR WANKEL ANIMADO
+// ════════════════════════════════════════════
+const heroCanvas = document.getElementById('heroCanvas');
+const hCtx = heroCanvas.getContext('2d');
+let heroAngle = 0;
+let isDragging = false, lastX = 0;
+let rotorAngle = 0;
+let autoSpin = true;
+
+function drawWankelHero(ctx, w, h, angle) {
+  ctx.clearRect(0, 0, w, h);
+  const cx = w / 2, cy = h / 2;
+  const R = w * 0.35, r = R / 3;
+  const e = R / 6.5;
+
+  // Glow BG
+  const grd = ctx.createRadialGradient(cx, cy, 0, cx, cy, R * 1.1);
+  grd.addColorStop(0, 'rgba(90,180,245,0.08)');
+  grd.addColorStop(1, 'rgba(0,0,0,0)');
+  ctx.fillStyle = grd;
+  ctx.beginPath();
+  ctx.arc(cx, cy, R * 1.1, 0, Math.PI * 2);
+  ctx.fill();
+
+  // Epitrochoid chamber
+  ctx.beginPath();
+  const steps = 300;
+  for (let i = 0; i <= steps; i++) {
+    const t = (i / steps) * Math.PI * 2;
+    const x = cx + (R + r) * Math.cos(t) - e * Math.cos((R / r + 1) * t);
+    const y = cy + (R + r) * Math.sin(t) - e * Math.sin((R / r + 1) * t);
+    i === 0 ? ctx.moveTo(x, y) : ctx.lineTo(x, y);
+  }
+  ctx.closePath();
+  ctx.strokeStyle = 'rgba(90,180,245,0.5)';
+  ctx.lineWidth = 1.5;
+  ctx.stroke();
+
+  // Rotor (triangle)
+  const rotR = R * 0.6;
+  const eccentricity = R * 0.15;
+  const ecX = cx + eccentricity * Math.cos(angle);
+  const ecY = cy + eccentricity * Math.sin(angle);
+
+  ctx.beginPath();
+  for (let i = 0; i < 3; i++) {
+    const ta = angle / 3 + (i * 2 * Math.PI / 3);
+    // Epitrochoid point
+    const t2 = ta * 3;
+    const ptX = cx + (R + r) * Math.cos(ta) * 0.6 - e * Math.cos(t2) * 0.6;
+    const ptY = cy + (R + r) * Math.sin(ta) * 0.6 - e * Math.sin(t2) * 0.6;
+    if (i === 0) ctx.moveTo(ptX, ptY);
+    else ctx.lineTo(ptX, ptY);
+  }
+  ctx.closePath();
+
+  // Rotor fill gradient
+  const rGrd = ctx.createRadialGradient(ecX, ecY, 0, ecX, ecY, rotR * 0.8);
+  rGrd.addColorStop(0, 'rgba(90,180,245,0.25)');
+  rGrd.addColorStop(1, 'rgba(90,180,245,0.05)');
+  ctx.fillStyle = rGrd;
+  ctx.fill();
+  ctx.strokeStyle = 'rgba(90,180,245,0.9)';
+  ctx.lineWidth = 2;
+  ctx.stroke();
+
+  // Apex dots
+  for (let i = 0; i < 3; i++) {
+    const ta = angle / 3 + (i * 2 * Math.PI / 3);
+    const ptX = cx + (R + r) * Math.cos(ta) * 0.6 - e * Math.cos(ta * 3) * 0.6;
+    const ptY = cy + (R + r) * Math.sin(ta) * 0.6 - e * Math.sin(ta * 3) * 0.6;
+    ctx.beginPath();
+    ctx.arc(ptX, ptY, 4, 0, Math.PI * 2);
+    ctx.fillStyle = '#5ab4f5';
+    ctx.fill();
+  }
+
+  // Center eccentric shaft
+  ctx.beginPath();
+  ctx.arc(cx, cy, 5, 0, Math.PI * 2);
+  ctx.fillStyle = 'rgba(90,180,245,0.8)';
+  ctx.fill();
+
+  ctx.beginPath();
+  ctx.arc(ecX, ecY, 8, 0, Math.PI * 2);
+  ctx.strokeStyle = 'rgba(90,180,245,0.6)';
+  ctx.lineWidth = 1.5;
+  ctx.stroke();
+}
+
+function heroLoop() {
+  if (autoSpin) heroAngle += 0.008;
+  drawWankelHero(hCtx, heroCanvas.width, heroCanvas.height, heroAngle);
+  requestAnimationFrame(heroLoop);
+}
+heroLoop();
+
+heroCanvas.addEventListener('mousedown', e => { isDragging = true; lastX = e.clientX; autoSpin = false; });
+heroCanvas.addEventListener('mousemove', e => {
+  if (!isDragging) return;
+  heroAngle += (e.clientX - lastX) * 0.01;
+  lastX = e.clientX;
+});
+heroCanvas.addEventListener('mouseup', () => { isDragging = false; setTimeout(() => autoSpin = true, 2000); });
+heroCanvas.addEventListener('touchstart', e => { isDragging = true; lastX = e.touches[0].clientX; autoSpin = false; });
+heroCanvas.addEventListener('touchmove', e => {
+  if (!isDragging) return;
+  heroAngle += (e.touches[0].clientX - lastX) * 0.01;
+  lastX = e.touches[0].clientX;
+});
+heroCanvas.addEventListener('touchend', () => { isDragging = false; setTimeout(() => autoSpin = true, 2000); });
+
+// ════════════════════════════════════════════
+// MAIN 3D ENGINE VIEWER
+// ════════════════════════════════════════════
+const eng3d = document.getElementById('engine3d');
+const e3Ctx = eng3d.getContext('2d');
+let eng3dAngle = 0;
+let eng3dAnim = true;
+let currentView = 'perspective';
+let explodeFactor = 0;
+let targetExplode = 0;
+
+function resizeEng3d() {
+  const wrap = document.getElementById('main3d');
+  eng3d.width = wrap.clientWidth;
+  eng3d.height = 450;
+}
+setTimeout(resizeEng3d, 100);
+window.addEventListener('resize', resizeEng3d);
+
+function drawEngine3D(ctx, w, h, angle, explode) {
+  ctx.clearRect(0, 0, w, h);
+  const cx = w / 2, cy = h / 2;
+  const scale = Math.min(w, h) / 500;
+  const R = 140 * scale, r = R / 3, e = R / 6;
+
+  // Background glow
+  const bg = ctx.createRadialGradient(cx, cy, 0, cx, cy, R * 1.4);
+  bg.addColorStop(0, 'rgba(90,180,245,0.06)');
+  bg.addColorStop(1, 'rgba(0,0,0,0)');
+  ctx.fillStyle = bg;
+  ctx.beginPath();
+  ctx.arc(cx, cy, R * 1.4, 0, Math.PI * 2);
+  ctx.fill();
+
+  // Outer ring
+  ctx.beginPath();
+  ctx.arc(cx, cy, R * 1.55, 0, Math.PI * 2);
+  ctx.strokeStyle = 'rgba(90,180,245,0.08)';
+  ctx.lineWidth = 20 * scale;
+  ctx.stroke();
+
+  // Side plates (exploded)
+  if (explode > 0) {
+    const plateOff = explode * 60 * scale;
+    // Left plate
+    ctx.save();
+    ctx.globalAlpha = 0.4 + explode * 0.3;
+    ctx.beginPath();
+    ctx.ellipse(cx - R * 1.2 - plateOff, cy, R * 0.8, R * 0.85, 0, 0, Math.PI * 2);
+    ctx.strokeStyle = 'rgba(90,180,245,0.6)';
+    ctx.lineWidth = 1.5;
+    ctx.stroke();
+    ctx.fillStyle = 'rgba(90,180,245,0.05)';
+    ctx.fill();
+    ctx.restore();
+
+    // Right plate
+    ctx.save();
+    ctx.globalAlpha = 0.4 + explode * 0.3;
+    ctx.beginPath();
+    ctx.ellipse(cx + R * 1.2 + plateOff, cy, R * 0.8, R * 0.85, 0, 0, Math.PI * 2);
+    ctx.strokeStyle = 'rgba(90,180,245,0.6)';
+    ctx.lineWidth = 1.5;
+    ctx.stroke();
+    ctx.fillStyle = 'rgba(90,180,245,0.05)';
+    ctx.fill();
+    ctx.restore();
+  }
+
+  // Epitrochoid (main chamber)
+  ctx.save();
+  if (currentView === 'front') {
+    ctx.translate(cx, cy);
+  }
+
+  ctx.beginPath();
+  const steps = 400;
+  for (let i = 0; i <= steps; i++) {
+    const t = (i / steps) * Math.PI * 2;
+    let x = (R + r) * Math.cos(t) - e * Math.cos((R/r + 1) * t);
+    let y = (R + r) * Math.sin(t) - e * Math.sin((R/r + 1) * t);
+    if (currentView === 'perspective') {
+      // 3D projection
+      const cos3d = Math.cos(angle * 0.3);
+      x = x * cos3d + (cy - cy) * Math.sin(angle * 0.3) * 0.3;
+    }
+    i === 0 ? ctx.moveTo(cx + x, cy + y) : ctx.lineTo(cx + x, cy + y);
+  }
+  ctx.closePath();
+
+  // Chamber fill with gradient
+  const chGrd = ctx.createRadialGradient(cx, cy, 0, cx, cy, R * 1.2);
+  chGrd.addColorStop(0, 'rgba(19,25,41,0.9)');
+  chGrd.addColorStop(1, 'rgba(10,13,20,0.9)');
+  ctx.fillStyle = chGrd;
+  ctx.fill();
+  ctx.strokeStyle = 'rgba(90,180,245,0.7)';
+  ctx.lineWidth = 2;
+  ctx.stroke();
+  ctx.restore();
+
+  // Rotor
+  const ecX = cx + e * Math.cos(angle) * (currentView === 'perspective' ? 1 : 1);
+  const ecY = cy + e * Math.sin(angle);
+
+  ctx.beginPath();
+  for (let i = 0; i < 3; i++) {
+    const ta = angle / 3 + (i * 2 * Math.PI / 3);
+    const t2 = ta * 3;
+    const ptX = cx + ((R + r) * Math.cos(ta) - e * Math.cos(t2)) * 0.68;
+    const ptY = cy + ((R + r) * Math.sin(ta) - e * Math.sin(t2)) * 0.68;
+    if (i === 0) ctx.moveTo(ptX, ptY);
+    else ctx.lineTo(ptX, ptY);
+  }
+  ctx.closePath();
+
+  const rotGrd = ctx.createRadialGradient(ecX, ecY, 0, ecX, ecY, R * 0.65);
+  rotGrd.addColorStop(0, 'rgba(30,45,70,0.95)');
+  rotGrd.addColorStop(0.7, 'rgba(20,32,55,0.95)');
+  rotGrd.addColorStop(1, 'rgba(90,180,245,0.1)');
+  ctx.fillStyle = rotGrd;
+  ctx.fill();
+  ctx.strokeStyle = '#5ab4f5';
+  ctx.lineWidth = 2.5;
+  ctx.stroke();
+
+  // Rotor face details
+  ctx.save();
+  ctx.clip();
+  for (let i = 0; i < 3; i++) {
+    const ta = angle / 3 + (i * 2 * Math.PI / 3);
+    const midX = ecX + Math.cos(ta + Math.PI / 3) * R * 0.25;
+    const midY = ecY + Math.sin(ta + Math.PI / 3) * R * 0.25;
+    ctx.beginPath();
+    ctx.arc(midX, midY, R * 0.08, 0, Math.PI * 2);
+    ctx.strokeStyle = 'rgba(90,180,245,0.2)';
+    ctx.lineWidth = 1;
+    ctx.stroke();
+  }
+  ctx.restore();
+
+  // Apex seals
+  for (let i = 0; i < 3; i++) {
+    const ta = angle / 3 + (i * 2 * Math.PI / 3);
+    const t2 = ta * 3;
+    const ptX = cx + ((R + r) * Math.cos(ta) - e * Math.cos(t2)) * 0.68;
+    const ptY = cy + ((R + r) * Math.sin(ta) - e * Math.sin(t2)) * 0.68;
+
+    ctx.save();
+    ctx.translate(ptX, ptY);
+    ctx.rotate(ta);
+    ctx.fillStyle = '#5ab4f5';
+    ctx.fillRect(-3, -7, 6, 14);
+    ctx.restore();
+
+    // Apex glow
+    const aGrd = ctx.createRadialGradient(ptX, ptY, 0, ptX, ptY, 15 * scale);
+    aGrd.addColorStop(0, 'rgba(90,180,245,0.5)');
+    aGrd.addColorStop(1, 'rgba(90,180,245,0)');
+    ctx.fillStyle = aGrd;
+    ctx.beginPath();
+    ctx.arc(ptX, ptY, 15 * scale, 0, Math.PI * 2);
+    ctx.fill();
+  }
+
+  // Eccentric shaft
+  const shaftR = R * 0.06;
+  ctx.beginPath();
+  ctx.arc(cx, cy, shaftR, 0, Math.PI * 2);
+  ctx.fillStyle = '#1a2235';
+  ctx.fill();
+  ctx.strokeStyle = 'rgba(90,180,245,0.8)';
+  ctx.lineWidth = 2;
+  ctx.stroke();
+
+  ctx.beginPath();
+  ctx.arc(ecX, ecY, shaftR * 1.5, 0, Math.PI * 2);
+  ctx.strokeStyle = 'rgba(90,180,245,0.5)';
+  ctx.lineWidth = 1.5;
+  ctx.stroke();
+
+  // Shaft line
+  ctx.beginPath();
+  ctx.moveTo(cx, cy);
+  ctx.lineTo(ecX, ecY);
+  ctx.strokeStyle = 'rgba(90,180,245,0.4)';
+  ctx.lineWidth = 1;
+  ctx.stroke();
+
+  // Spark plugs
+  const spAngles = [Math.PI * 0.7, Math.PI * 0.85];
+  spAngles.forEach(sa => {
+    const spX = cx + Math.cos(sa) * (R * 1.08);
+    const spY = cy + Math.sin(sa) * (R * 1.08);
+    ctx.beginPath();
+    ctx.arc(spX, spY, 5 * scale, 0, Math.PI * 2);
+    ctx.fillStyle = '#c9a84c';
+    ctx.fill();
+    // Spark
+    if (Math.floor(eng3dAngle * 10) % 20 === 0) {
+      ctx.beginPath();
+      ctx.arc(spX, spY, 12 * scale, 0, Math.PI * 2);
+      ctx.fillStyle = 'rgba(201,168,76,0.3)';
+      ctx.fill();
+    }
+  });
+
+  // Labels (perspective view)
+  if (currentView === 'perspective') {
+    ctx.font = `${10 * scale}px 'JetBrains Mono'`;
+    ctx.fillStyle = 'rgba(90,180,245,0.6)';
+    ctx.fillText('ROTOR', cx + 5, cy - R * 0.15);
+    ctx.fillText('CÂMARA', cx + R * 0.65, cy - R * 0.55);
+  }
+}
+
+let eng3dDrag = false, eng3dLastX = 0;
+function eng3dLoop() {
+  if (eng3dAnim) eng3dAngle += 0.012;
+  explodeFactor += (targetExplode - explodeFactor) * 0.05;
+  drawEngine3D(e3Ctx, eng3d.width, eng3d.height, eng3dAngle, explodeFactor);
+  requestAnimationFrame(eng3dLoop);
+}
+eng3dLoop();
+
+eng3d.addEventListener('mousedown', e => { eng3dDrag = true; eng3dLastX = e.clientX; eng3dAnim = false; });
+eng3d.addEventListener('mousemove', e => {
+  if (!eng3dDrag) return;
+  eng3dAngle += (e.clientX - eng3dLastX) * 0.01;
+  eng3dLastX = e.clientX;
+});
+eng3d.addEventListener('mouseup', () => { eng3dDrag = false; });
+
+window.setView = function(v) {
+  currentView = v;
+  targetExplode = v === 'exploded' ? 1 : 0;
+  document.querySelectorAll('.viewer-controls .vbtn').forEach(b => b.classList.remove('active'));
+  event.target.classList.add('active');
+};
+
+window.toggleAnim = function() {
+  eng3dAnim = !eng3dAnim;
+  document.getElementById('animBtn').textContent = eng3dAnim ? '⏸ Pausar' : '▶ Iniciar';
+};
+
+// ════════════════════════════════════════════
+// CYCLE CANVAS
+// ════════════════════════════════════════════
+const cycleCanvas = document.getElementById('cycle-canvas');
+const cCtx = cycleCanvas.getContext('2d');
+let cyclePhase = 0;
+let cycleAnimAngle = 0;
+let cycleAnim = true;
+const phaseColors = ['rgba(90,180,245,0.35)', 'rgba(255,165,50,0.3)', 'rgba(220,50,50,0.35)', 'rgba(120,220,120,0.25)'];
+const phaseNames = ['Admissão', 'Compressão', 'Expansão (Potência)', 'Escape'];
+const phaseDescs = [
+  'A mistura ar-combustível entra pela porta de admissão enquanto o compartimento expande progressivamente.',
+  'A mistura é comprimida pelo movimento do rotor até atingir a relação ideal para ignição.',
+  'Após a ignição, a expansão dos gases empurra o rotor gerando torque contínuo no eixo excêntrico.',
+  'Os gases queimados são expelidos pela porta de escape enquanto o compartimento se reduz.'
+];
+
+function drawCycle(ctx, w, h, angle, phase) {
+  ctx.clearRect(0, 0, w, h);
+  const cx = w/2, cy = h/2;
+  const R = w * 0.33, r = R/3, e = R/6;
+
+  // Chamber
+  ctx.beginPath();
+  const steps = 300;
+  for (let i = 0; i <= steps; i++) {
+    const t = (i/steps) * Math.PI * 2;
+    const x = cx + (R+r)*Math.cos(t) - e*Math.cos((R/r+1)*t);
+    const y = cy + (R+r)*Math.sin(t) - e*Math.sin((R/r+1)*t);
+    i===0 ? ctx.moveTo(x,y) : ctx.lineTo(x,y);
+  }
+  ctx.closePath();
+  ctx.fillStyle = 'rgba(15,21,32,0.9)';
+  ctx.fill();
+  ctx.strokeStyle = 'rgba(90,180,245,0.5)';
+  ctx.lineWidth = 1.5;
+  ctx.stroke();
+
+  // Rotor points
+  const pts = [];
+  for (let i = 0; i < 3; i++) {
+    const ta = angle/3 + (i * 2*Math.PI/3);
+    const t2 = ta*3;
+    pts.push({
+      x: cx + ((R+r)*Math.cos(ta) - e*Math.cos(t2)) * 0.7,
+      y: cy + ((R+r)*Math.sin(ta) - e*Math.sin(t2)) * 0.7
+    });
+  }
+
+  // Colored chambers
+  for (let i = 0; i < 3; i++) {
+    const p1 = pts[i], p2 = pts[(i+1)%3];
+    const mp = { x: (p1.x+p2.x)/2, y: (p1.y+p2.y)/2 };
+    // Find chamber midpoint on epitrochoid side
+    const segPhase = (i + Math.floor(angle / (Math.PI * 2/3))) % 3;
+
+    // Draw chamber segment
+    ctx.beginPath();
+    ctx.moveTo(p1.x, p1.y);
+    // Arc along epitrochoid
+    const startT = angle/3 + (i * 2*Math.PI/3);
+    const endT = angle/3 + ((i+1) * 2*Math.PI/3);
+    const segSteps = 50;
+    for (let j = 0; j <= segSteps; j++) {
+      const t = startT + (endT - startT) * j/segSteps;
+      const t2 = t*3;
+      const ex = cx + ((R+r)*Math.cos(t) - e*Math.cos(t2)) * 0.7;
+      const ey = cy + ((R+r)*Math.sin(t) - e*Math.sin(t2)) * 0.7;
+      ctx.lineTo(ex, ey);
+    }
+    ctx.lineTo(p2.x, p2.y);
+    ctx.lineTo(p1.x, p1.y);
+    ctx.closePath();
+    const colorIdx = (phase + i) % 4;
+    ctx.fillStyle = phaseColors[colorIdx];
+    ctx.fill();
+  }
+
+  // Rotor
+  ctx.beginPath();
+  ctx.moveTo(pts[0].x, pts[0].y);
+  ctx.lineTo(pts[1].x, pts[1].y);
+  ctx.lineTo(pts[2].x, pts[2].y);
+  ctx.closePath();
+  ctx.fillStyle = 'rgba(20,30,50,0.9)';
+  ctx.fill();
+  ctx.strokeStyle = '#5ab4f5';
+  ctx.lineWidth = 2;
+  ctx.stroke();
+
+  // Apex dots
+  pts.forEach(p => {
+    ctx.beginPath();
+    ctx.arc(p.x, p.y, 4, 0, Math.PI*2);
+    ctx.fillStyle = '#5ab4f5';
+    ctx.fill();
+  });
+
+  // Center
+  ctx.beginPath();
+  ctx.arc(cx, cy, 5, 0, Math.PI*2);
+  ctx.fillStyle = '#5ab4f5';
+  ctx.fill();
+}
+
+let lastCyclePhase = 0;
+function cycleLoop() {
+  if (cycleAnim) {
+    cycleAnimAngle += 0.015;
+    const p = Math.floor((cycleAnimAngle / (Math.PI*2/3)) % 4);
+    if (p !== lastCyclePhase) {
+      lastCyclePhase = p;
+      updateCycleUI(p % 4);
+    }
+  }
+  drawCycle(cCtx, cycleCanvas.width, cycleCanvas.height, cycleAnimAngle, cyclePhase);
+  requestAnimationFrame(cycleLoop);
+}
+cycleLoop();
+
+function updateCycleUI(p) {
+  document.getElementById('cyclePhaseName').textContent = phaseNames[p];
+  document.getElementById('cyclePhaseDesc').textContent = phaseDescs[p];
+  document.querySelectorAll('#phaseIndicators .vbtn').forEach((b, i) => {
+    b.classList.toggle('active', i === p);
+  });
+  document.querySelectorAll('.phase-item').forEach((el, i) => {
+    el.classList.toggle('active', i === p);
+  });
+}
+
+window.setCyclePhase = function(p) {
+  cyclePhase = p;
+  cycleAnim = false;
+  cycleAnimAngle = p * Math.PI * 2 / 3;
+  updateCycleUI(p);
+  setTimeout(() => { cycleAnim = true; }, 3000);
+};
+
+// ════════════════════════════════════════════
+// CAR THUMBNAILS
+// ════════════════════════════════════════════
+const carConfigs = [
+  { color: '#e8c97a', shape: 'cosmo' },
+  { color: '#8fbbe8', shape: 'rx7sa' },
+  { color: '#cc4444', shape: 'rx7fd' },
+  { color: '#7ec8a0', shape: 'rx8' },
+  { color: '#e8a87c', shape: 'birotor' },
+  { color: '#5ab4f5', shape: 'mx30' }
+];
+
+function drawCar(canvas, cfg) {
+  const ctx = canvas.getContext('2d');
+  const w = canvas.width, h = canvas.height;
+  const cx = w/2, cy = h/2 + 10;
+
+  ctx.clearRect(0, 0, w, h);
+
+  // Wankel rotor background
+  const R = 55, r = R/3, e = R/6;
+  ctx.beginPath();
+  const steps = 200;
+  for (let i = 0; i <= steps; i++) {
+    const t = (i/steps)*Math.PI*2;
+    const x = cx + (R+r)*Math.cos(t) - e*Math.cos((R/r+1)*t);
+    const y = cy - 10 + (R+r)*Math.sin(t) - e*Math.sin((R/r+1)*t);
+    i===0?ctx.moveTo(x,y):ctx.lineTo(x,y);
+  }
+  ctx.closePath();
+  ctx.strokeStyle = `${cfg.color}30`;
+  ctx.lineWidth = 1;
+  ctx.stroke();
+
+  // Silhouette car shape
+  ctx.save();
+  ctx.translate(cx, cy + 15);
+
+  const bodyGrd = ctx.createLinearGradient(0, -30, 0, 20);
+  bodyGrd.addColorStop(0, cfg.color + 'cc');
+  bodyGrd.addColorStop(1, cfg.color + '44');
+
+  ctx.beginPath();
+  // Body
+  ctx.moveTo(-75, 15);
+  ctx.lineTo(-75, -5);
+  ctx.lineTo(-55, -5);
+  switch(cfg.shape) {
+    case 'cosmo':
+      ctx.bezierCurveTo(-45,-5,-35,-32,0,-32);
+      ctx.bezierCurveTo(30,-32,45,-10,55,-5);
+      break;
+    case 'rx7sa':
+      ctx.bezierCurveTo(-40,-5,-30,-28,0,-28);
+      ctx.bezierCurveTo(25,-28,40,-8,55,-5);
+      break;
+    case 'rx7fd':
+      ctx.bezierCurveTo(-40,-5,-25,-35,5,-35);
+      ctx.bezierCurveTo(30,-35,45,-10,55,-5);
+      break;
+    case 'rx8':
+      ctx.bezierCurveTo(-40,-5,-20,-30,5,-30);
+      ctx.bezierCurveTo(30,-30,45,-8,55,-5);
+      break;
+    case 'birotor':
+      ctx.bezierCurveTo(-42,-5,-35,-25,0,-25);
+      ctx.bezierCurveTo(28,-25,42,-8,55,-5);
+      break;
+    case 'mx30':
+      ctx.bezierCurveTo(-38,-5,-22,-28,5,-28);
+      ctx.bezierCurveTo(32,-28,48,-6,55,-5);
+      break;
+  }
+  ctx.lineTo(75, -5);
+  ctx.lineTo(75, 15);
+  ctx.closePath();
+  ctx.fillStyle = bodyGrd;
+  ctx.fill();
+  ctx.strokeStyle = cfg.color;
+  ctx.lineWidth = 1.5;
+  ctx.stroke();
+
+  // Wheels
+  [-50, 50].forEach(wx => {
+    ctx.beginPath();
+    ctx.arc(wx, 15, 14, 0, Math.PI*2);
+    ctx.fillStyle = '#0a0d14';
+    ctx.fill();
+    ctx.strokeStyle = '#3d8fd4';
+    ctx.lineWidth = 3;
+    ctx.stroke();
+    ctx.beginPath();
+    ctx.arc(wx, 15, 6, 0, Math.PI*2);
+    ctx.fillStyle = cfg.color;
+    ctx.fill();
+  });
+
+  ctx.restore();
+}
+
+// Draw all car thumbnails
+for (let i = 1; i <= 6; i++) {
+  const c = document.getElementById(`carCanvas${i}`);
+  if (c) {
+    c.width = 320; c.height = 180;
+    // Animated rotor in thumb
+    let ang = 0;
+    const cfg = carConfigs[i-1];
+    drawCar(c, cfg);
+    const thumbLoop = () => {
+      const ctx = c.getContext('2d');
+      const w = c.width, h = c.height;
+      ctx.clearRect(0, 0, w, h);
+      const cx = w/2, cy = h/2;
+      // Mini wankel
+      const R = 45, r = R/3, e = R/6;
+      ctx.beginPath();
+      const steps = 200;
+      for (let j = 0; j <= steps; j++) {
+        const t = (j/steps)*Math.PI*2;
+        const x = cx + (R+r)*Math.cos(t) - e*Math.cos((R/r+1)*t);
+        const y = cy - 15 + (R+r)*Math.sin(t) - e*Math.sin((R/r+1)*t);
+        j===0?ctx.moveTo(x,y):ctx.lineTo(x,y);
+      }
+      ctx.closePath();
+      ctx.strokeStyle = cfg.color + '25';
+      ctx.lineWidth = 1;
+      ctx.stroke();
+      drawCar(c, cfg);
+      ang += 0.01;
+      requestAnimationFrame(thumbLoop);
+    };
+    thumbLoop();
+  }
+}
+
+// ════════════════════════════════════════════
+// PROBLEMAS
+// ════════════════════════════════════════════
+const probData = [
+  {
+    tag: 'PROBLEMA CRÍTICO',
+    title: 'Vedações de Ápice (Apex Seals)',
+    text: 'As vedações de ápice são as peças nos três vértices do rotor que mantêm contato constante com a câmara epitrocóide. Este contato contínuo gera desgaste extremo e uniforme em temperaturas superiores a 400°C.<br><br>A lubrificação é injetada diretamente no ciclo (o óleo é consumido), e qualquer falha resulta em perda de compressão catastrófica. Este foi o maior fator de limitação da vida útil dos motores Wankel e a principal razão para não ter prevalecido no mercado de massa.',
+    tags: ['Alta temperatura', 'Desgaste contínuo', 'Falha crítica', 'Lubrificação deficiente']
+  },
+  {
+    tag: 'PROBLEMA CRÔNICO',
+    title: 'Alto Consumo de Combustível',
+    text: 'A câmara de combustão do motor Wankel possui formato alongado e irregular, o que dificulta a propagação eficiente da frente de chama. O resultado é uma combustão incompleta e eficiência térmica inferior aos motores de pistão.<br><br>Enquanto motores modernos a pistão atingem 35-45% de eficiência térmica, o Wankel típico opera entre 22-28%. Na prática, um RX-8 com 232cv consumia de 15 a 18 L/100km em uso urbano — consumo de motor V8.',
+    tags: ['Combustão incompleta', 'Câmara irregular', 'Eficiência 22-28%', 'Alto custo operacional']
+  },
+  {
+    tag: 'CARACTERÍSTICA CRÔNICA',
+    title: 'Consumo Excessivo de Óleo',
+    text: 'O motor Wankel utiliza injeção direta de óleo para lubrificar as vedações de ápice — este óleo é consumido no processo de combustão. Ao contrário dos motores de pistão onde o óleo é reutilizado em circuito fechado, o Wankel consome óleo como parte de seu funcionamento normal.<br><br>O consumo típico é de 500ml a 1 litro a cada abastecimento. Negligenciar a verificação do nível de óleo era causa frequente de falha catastrófica por seca de lubrificação.',
+    tags: ['Design intrínseco', '0.5-1L por tanque', 'Monitoramento constante', 'Carbono nas câmaras']
+  },
+  {
+    tag: 'DESAFIO TÉRMICO',
+    title: 'Superaquecimento Localizado',
+    text: 'A câmara epitrocóide gera distribuição assimétrica de calor — a região oposta à porta de admissão (zona de ignição e expansão) fica muito mais quente que o lado da admissão. Isso cria gradientes térmicos severos na câmara.<br><br>A zona quente pode atingir temperaturas capazes de provocar ignição prematura da mistura (detonação), enquanto a zona fria pode gerar condensação de combustível não queimado. O gerenciamento térmico é crítico e representa enorme desafio de engenharia.',
+    tags: ['Gradiente assimétrico', 'Zona quente/fria', 'Risco de detonação', 'Refrigeração complexa']
+  },
+  {
+    tag: 'PROBLEMA AMBIENTAL',
+    title: 'Emissões Elevadas de HC',
+    text: 'O hidrocarboneto não queimado (HC) é uma das principais emissões problemáticas do motor Wankel. O formato irregular e alongado da câmara cria "dead volumes" — regiões onde a mistura fica presa sem ser completamente queimada.<br><br>Na prática, isso significa emissões de HC muito superiores aos limites modernos. O RENESIS (RX-8) foi o motor que mais avançou neste sentido com portas laterais, mas ainda assim o RX-8 foi descontinuado parcialmente por não atender às normas Euro 5.',
+    tags: ['HC elevado', 'Dead volumes', 'Falha Euro 5', 'Catalisador exigente']
+  },
+  {
+    tag: 'FATOR LIMITANTE',
+    title: 'Manutenção Especializada',
+    text: 'A raridade e a especificidade do motor Wankel significa que pouquíssimos mecânicos possuem o conhecimento necessário para sua manutenção adequada. Reconstrução de motor, por exemplo, exige ferramental específico e conhecimento profundo da geometria das câmaras.<br><br>O custo de uma reconstrução do motor de um RX-7 FD ou RX-8 varia de R$8.000 a R$25.000 no Brasil em 2024. A falta de especialistas qualificados transformou muitos exemplares em sucata prematuramente.',
+    tags: ['Poucos especialistas', 'Alto custo', 'Ferramental específico', 'Peças escassas']
+  }
+];
+
+window.setProb = function(i) {
+  document.querySelectorAll('.prob-item').forEach((el, j) => el.classList.toggle('active', j===i));
+  const d = probData[i];
+  document.querySelector('.pdp-tag').textContent = d.tag;
+  document.getElementById('pdpTitle').textContent = d.title;
+  document.getElementById('pdpText').innerHTML = d.text;
+  const tagsEl = document.querySelector('.pdp-tags');
+  tagsEl.innerHTML = d.tags.map(t => `<span class="pdp-tag-item">${t}</span>`).join('');
+};
+
+// ════════════════════════════════════════════
+// NAV
+// ════════════════════════════════════════════
+const navbar = document.getElementById('navbar');
+const hamburger = document.getElementById('hamburger');
+const navLinks = document.getElementById('navLinks');
+
+window.addEventListener('scroll', () => {
+  navbar.classList.toggle('scrolled', window.scrollY > 50);
+});
+
+hamburger.addEventListener('click', () => {
+  navLinks.classList.toggle('open');
+});
+
+navLinks.querySelectorAll('a').forEach(a => {
+  a.addEventListener('click', () => navLinks.classList.remove('open'));
+});
+
+// ════════════════════════════════════════════
+// SCROLL REVEAL
+// ════════════════════════════════════════════
+const observer = new IntersectionObserver((entries) => {
+  entries.forEach(e => {
+    if (e.isIntersecting) {
+      e.target.classList.add('visible');
+    }
+  });
+}, { threshold: 0.1, rootMargin: '0px 0px -50px 0px' });
+
+document.querySelectorAll('.reveal').forEach(el => observer.observe(el));
+</script>
+</body>
+</html>
