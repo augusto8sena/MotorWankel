@@ -1,0 +1,1765 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Motor Wankel — FACENS</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Orbitron:wght@400;600;700;900&family=Exo+2:wght@300;400;500;600&family=Share+Tech+Mono&display=swap" rel="stylesheet">
+<script src="three.min.js"></script>          <!-- global THREE -->
+<script src="GLTFLoader.js"></script>          <!-- não se conectava -->
+<script src="OrbitControls.js"></script>  
+
+<style>
+  /* ===== CSS VARIABLES ===== */
+  :root {
+    --bg-primary: #050a12;
+    --bg-secondary: #080f1a;
+    --bg-card: #0a1525;
+    --blue-primary: #4fc3f7;
+    --blue-glow: #29b6f6;
+    --blue-dim: #0d47a1;
+    --blue-accent: #81d4fa;
+    --blue-deep: #01579b;
+    --text-primary: #e8f4fd;
+    --text-secondary: #90b8d4;
+    --text-muted: #4a7a9b;
+    --border-glow: rgba(79, 195, 247, 0.3);
+    --glass-bg: rgba(10, 25, 50, 0.6);
+    --led-on: #4fc3f7;
+    --led-off: #0d2a40;
+    --font-display: 'Orbitron', monospace;
+    --font-body: 'Exo 2', sans-serif;
+    --font-mono: 'Share Tech Mono', monospace;
+  }
+
+  /* ===== RESET & BASE ===== */
+  *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+  html { scroll-behavior: smooth; }
+
+  body {
+    background-color: var(--bg-primary);
+    color: var(--text-primary);
+    font-family: var(--font-body);
+    font-weight: 400;
+    line-height: 1.6;
+    overflow-x: hidden;
+  }
+
+  /* ===== SCROLLBAR ===== */
+  ::-webkit-scrollbar { width: 6px; }
+  ::-webkit-scrollbar-track { background: var(--bg-primary); }
+  ::-webkit-scrollbar-thumb { background: var(--blue-dim); border-radius: 3px; }
+  ::-webkit-scrollbar-thumb:hover { background: var(--blue-primary); }
+
+  /* ===== ANIMATED BG ===== */
+  .bg-grid {
+    position: fixed; inset: 0; z-index: 0;
+    background-image:
+      linear-gradient(rgba(79,195,247,0.03) 1px, transparent 1px),
+      linear-gradient(90deg, rgba(79,195,247,0.03) 1px, transparent 1px);
+    background-size: 50px 50px;
+    pointer-events: none;
+  }
+  .bg-radial {
+    position: fixed; inset: 0; z-index: 0;
+    background: radial-gradient(ellipse 80% 50% at 50% -10%, rgba(13,71,161,0.25), transparent);
+    pointer-events: none;
+  }
+
+  /* ===== LIQUID GLASS NAVBAR ===== */
+  nav {
+    position: fixed; top: 0; left: 0; right: 0; z-index: 1000;
+    padding: 0 2rem;
+    height: 68px;
+    display: flex; align-items: center; justify-content: space-between;
+    backdrop-filter: blur(24px) saturate(180%);
+    -webkit-backdrop-filter: blur(24px) saturate(180%);
+    background: rgba(5, 12, 25, 0.55);
+    border-bottom: 1px solid rgba(79,195,247,0.15);
+    box-shadow:
+      0 8px 32px rgba(0,0,0,0.4),
+      inset 0 1px 0 rgba(79,195,247,0.1),
+      0 1px 0 rgba(79,195,247,0.05);
+    transition: all 0.3s ease;
+  }
+  nav::before {
+    content: '';
+    position: absolute; inset: 0;
+    background: linear-gradient(135deg, rgba(79,195,247,0.04) 0%, transparent 50%, rgba(79,195,247,0.02) 100%);
+    pointer-events: none;
+  }
+  nav.scrolled {
+    background: rgba(5, 10, 20, 0.85);
+    border-bottom-color: rgba(79,195,247,0.25);
+  }
+  .nav-brand {
+    display: flex; align-items: center; gap: 0.75rem;
+    text-decoration: none;
+  }
+  .nav-logo {
+    width: 36px; height: 36px;
+    border: 1.5px solid var(--blue-primary);
+    border-radius: 6px;
+    display: flex; align-items: center; justify-content: center;
+    position: relative;
+    box-shadow: 0 0 12px rgba(79,195,247,0.4), inset 0 0 8px rgba(79,195,247,0.1);
+  }
+  .nav-logo svg { width: 20px; height: 20px; }
+  .nav-title-group { display: flex; flex-direction: column; }
+  .nav-title {
+    font-family: var(--font-display);
+    font-size: 0.85rem;
+    font-weight: 700;
+    color: var(--blue-primary);
+    letter-spacing: 0.12em;
+    text-shadow: 0 0 12px rgba(79,195,247,0.6);
+    line-height: 1;
+  }
+  .nav-subtitle {
+    font-family: var(--font-mono);
+    font-size: 0.6rem;
+    color: var(--text-muted);
+    letter-spacing: 0.15em;
+  }
+  .nav-links {
+    display: flex; align-items: center; gap: 0.25rem;
+    list-style: none;
+  }
+  .nav-links a {
+    display: block; padding: 0.4rem 0.9rem;
+    text-decoration: none;
+    font-family: var(--font-body);
+    font-size: 0.78rem;
+    font-weight: 500;
+    color: var(--text-secondary);
+    letter-spacing: 0.05em;
+    border-radius: 6px;
+    transition: all 0.25s ease;
+    position: relative;
+  }
+  .nav-links a::after {
+    content: '';
+    position: absolute; bottom: 2px; left: 50%; right: 50%;
+    height: 1.5px;
+    background: var(--blue-primary);
+    box-shadow: 0 0 6px var(--blue-primary);
+    transition: all 0.25s ease;
+  }
+  .nav-links a:hover { color: var(--blue-primary); }
+  .nav-links a:hover::after { left: 10%; right: 10%; }
+  .hamburger {
+    display: none; flex-direction: column; gap: 5px; cursor: pointer;
+    background: none; border: none; padding: 0.5rem;
+  }
+  .hamburger span {
+    display: block; width: 24px; height: 2px;
+    background: var(--blue-primary);
+    border-radius: 2px;
+    transition: all 0.3s ease;
+    box-shadow: 0 0 6px var(--blue-primary);
+  }
+  .hamburger.open span:nth-child(1) { transform: translateY(7px) rotate(45deg); }
+  .hamburger.open span:nth-child(2) { opacity: 0; }
+  .hamburger.open span:nth-child(3) { transform: translateY(-7px) rotate(-45deg); }
+
+  /* ===== MOBILE MENU ===== */
+  .mobile-menu {
+    display: none; position: fixed; top: 68px; left: 0; right: 0; z-index: 999;
+    backdrop-filter: blur(24px);
+    background: rgba(5,10,20,0.95);
+    border-bottom: 1px solid var(--border-glow);
+    padding: 1rem 2rem;
+    flex-direction: column; gap: 0.5rem;
+  }
+  .mobile-menu.open { display: flex; }
+  .mobile-menu a {
+    text-decoration: none; color: var(--text-secondary);
+    font-size: 0.9rem; padding: 0.75rem 0;
+    border-bottom: 1px solid rgba(79,195,247,0.08);
+    transition: color 0.2s;
+  }
+  .mobile-menu a:hover { color: var(--blue-primary); }
+
+  /* ===== HERO ===== */
+  #hero {
+    position: relative; z-index: 1;
+    min-height: 100vh;
+    display: flex; flex-direction: column;
+    justify-content: center; align-items: center;
+    text-align: center;
+    padding: 6rem 2rem 4rem;
+    overflow: hidden;
+  }
+  .hero-badge {
+    display: inline-flex; align-items: center; gap: 0.5rem;
+    background: rgba(79,195,247,0.08);
+    border: 1px solid rgba(79,195,247,0.25);
+    border-radius: 50px;
+    padding: 0.4rem 1.1rem;
+    font-family: var(--font-mono);
+    font-size: 0.7rem;
+    color: var(--blue-primary);
+    letter-spacing: 0.15em;
+    margin-bottom: 2rem;
+    animation: fadeInDown 0.8s ease both;
+  }
+  .led-dot {
+    width: 7px; height: 7px;
+    border-radius: 50%;
+    background: var(--led-on);
+    box-shadow: 0 0 6px var(--led-on), 0 0 12px var(--led-on);
+    animation: ledPulse 1.8s ease-in-out infinite;
+  }
+  @keyframes ledPulse {
+    0%,100% { opacity: 1; box-shadow: 0 0 6px var(--led-on), 0 0 14px var(--led-on); }
+    50% { opacity: 0.5; box-shadow: 0 0 3px var(--led-on); }
+  }
+  .hero-title {
+    font-family: var(--font-display);
+    font-size: clamp(2.4rem, 7vw, 5.5rem);
+    font-weight: 900;
+    line-height: 1.1;
+    letter-spacing: 0.04em;
+    animation: fadeInUp 0.9s ease 0.2s both;
+  }
+  .title-gradient {
+    background: linear-gradient(135deg, #ffffff 0%, var(--blue-accent) 40%, var(--blue-primary) 70%, var(--blue-glow) 100%);
+    -webkit-background-clip: text;
+    -webkit-text-fill-color: transparent;
+    background-clip: text;
+    filter: drop-shadow(0 0 30px rgba(79,195,247,0.3));
+  }
+  .hero-sub {
+    margin-top: 0.5rem;
+    font-family: var(--font-display);
+    font-size: clamp(0.8rem, 2vw, 1.1rem);
+    font-weight: 400;
+    color: var(--text-muted);
+    letter-spacing: 0.25em;
+    animation: fadeInUp 0.9s ease 0.35s both;
+  }
+  .hero-desc {
+    max-width: 640px; margin: 2rem auto 0;
+    font-size: 1rem; color: var(--text-secondary); line-height: 1.8;
+    animation: fadeInUp 0.9s ease 0.5s both;
+  }
+  .hero-cta {
+    margin-top: 2.5rem; display: flex; gap: 1rem; flex-wrap: wrap; justify-content: center;
+    animation: fadeInUp 0.9s ease 0.65s both;
+  }
+  .btn-primary {
+    display: inline-flex; align-items: center; gap: 0.5rem;
+    padding: 0.75rem 2rem;
+    background: linear-gradient(135deg, var(--blue-deep), var(--blue-dim));
+    border: 1px solid var(--blue-primary);
+    border-radius: 8px;
+    color: var(--blue-accent);
+    font-family: var(--font-display);
+    font-size: 0.78rem;
+    font-weight: 600;
+    letter-spacing: 0.1em;
+    text-decoration: none;
+    cursor: pointer;
+    transition: all 0.3s ease;
+    box-shadow: 0 0 20px rgba(79,195,247,0.2), inset 0 0 10px rgba(79,195,247,0.05);
+  }
+  .btn-primary:hover {
+    background: linear-gradient(135deg, var(--blue-dim), var(--blue-deep));
+    box-shadow: 0 0 30px rgba(79,195,247,0.5), inset 0 0 20px rgba(79,195,247,0.1);
+    transform: translateY(-2px);
+    color: #fff;
+  }
+  .btn-outline {
+    display: inline-flex; align-items: center; gap: 0.5rem;
+    padding: 0.75rem 2rem;
+    background: transparent;
+    border: 1px solid rgba(79,195,247,0.3);
+    border-radius: 8px;
+    color: var(--text-secondary);
+    font-family: var(--font-display);
+    font-size: 0.78rem;
+    font-weight: 600;
+    letter-spacing: 0.1em;
+    text-decoration: none;
+    cursor: pointer;
+    transition: all 0.3s ease;
+  }
+  .btn-outline:hover {
+    border-color: var(--blue-primary);
+    color: var(--blue-primary);
+    box-shadow: 0 0 20px rgba(79,195,247,0.15);
+  }
+  .hero-specs {
+    margin-top: 3.5rem;
+    display: flex; gap: 2rem; flex-wrap: wrap; justify-content: center;
+    animation: fadeInUp 0.9s ease 0.8s both;
+  }
+  .spec-item {
+    display: flex; flex-direction: column; align-items: center;
+    gap: 0.25rem;
+    padding: 1rem 1.5rem;
+    background: rgba(79,195,247,0.05);
+    border: 1px solid rgba(79,195,247,0.12);
+    border-radius: 10px;
+    min-width: 110px;
+    transition: all 0.3s;
+  }
+  .spec-item:hover {
+    border-color: rgba(79,195,247,0.35);
+    box-shadow: 0 0 20px rgba(79,195,247,0.1);
+    transform: translateY(-2px);
+  }
+  .spec-val {
+    font-family: var(--font-display);
+    font-size: 1.4rem; font-weight: 700;
+    color: var(--blue-primary);
+    text-shadow: 0 0 12px rgba(79,195,247,0.5);
+  }
+  .spec-lbl {
+    font-family: var(--font-mono);
+    font-size: 0.62rem; color: var(--text-muted); letter-spacing: 0.1em;
+  }
+  .scroll-indicator {
+    position: absolute; bottom: 2rem; left: 50%; transform: translateX(-50%);
+    display: flex; flex-direction: column; align-items: center; gap: 0.5rem;
+    animation: bounce 2s ease-in-out infinite;
+    opacity: 0.5;
+  }
+  .scroll-indicator span { font-size: 0.6rem; font-family: var(--font-mono); letter-spacing: 0.15em; color: var(--text-muted); }
+  .scroll-arrow { width: 1.2px; height: 30px; background: linear-gradient(to bottom, transparent, var(--blue-primary)); }
+  @keyframes bounce { 0%,100% { transform: translateX(-50%) translateY(0); } 50% { transform: translateX(-50%) translateY(8px); } }
+
+  /* ===== SECTIONS ===== */
+  section {
+    position: relative; z-index: 1;
+    padding: 6rem 2rem;
+  }
+  .container { max-width: 1100px; margin: 0 auto; }
+  .section-header { text-align: center; margin-bottom: 4rem; }
+  .section-tag {
+    display: inline-block;
+    font-family: var(--font-mono);
+    font-size: 0.68rem; letter-spacing: 0.2em;
+    color: var(--blue-primary);
+    background: rgba(79,195,247,0.08);
+    border: 1px solid rgba(79,195,247,0.2);
+    padding: 0.25rem 0.9rem; border-radius: 50px;
+    margin-bottom: 1rem;
+  }
+  .section-title {
+    font-family: var(--font-display);
+    font-size: clamp(1.6rem, 4vw, 2.6rem);
+    font-weight: 700;
+    color: var(--text-primary);
+    letter-spacing: 0.03em;
+    margin-bottom: 1rem;
+  }
+  .section-title span { color: var(--blue-primary); text-shadow: 0 0 20px rgba(79,195,247,0.4); }
+  .section-line {
+    width: 60px; height: 2px;
+    background: linear-gradient(90deg, transparent, var(--blue-primary), transparent);
+    box-shadow: 0 0 10px var(--blue-primary);
+    margin: 0 auto;
+  }
+  .section-desc {
+    margin-top: 1rem;
+    color: var(--text-secondary); max-width: 600px; margin: 1rem auto 0;
+    font-size: 0.95rem; line-height: 1.8;
+  }
+
+  /* ===== CARDS ===== */
+  .card {
+    background: var(--bg-card);
+    border: 1px solid var(--border-glow);
+    border-radius: 14px;
+    padding: 2rem;
+    position: relative;
+    overflow: hidden;
+    transition: all 0.35s ease;
+  }
+  .card::before {
+    content: '';
+    position: absolute; inset: 0;
+    background: linear-gradient(135deg, rgba(79,195,247,0.04) 0%, transparent 60%);
+    pointer-events: none;
+  }
+  .card:hover {
+    border-color: rgba(79,195,247,0.5);
+    box-shadow: 0 0 30px rgba(79,195,247,0.12), 0 20px 40px rgba(0,0,0,0.3);
+    transform: translateY(-4px);
+  }
+  .card-icon {
+    width: 48px; height: 48px;
+    border: 1px solid rgba(79,195,247,0.3);
+    border-radius: 10px;
+    display: flex; align-items: center; justify-content: center;
+    margin-bottom: 1.25rem;
+    background: rgba(79,195,247,0.08);
+    font-size: 1.4rem;
+    box-shadow: 0 0 15px rgba(79,195,247,0.15);
+  }
+  .card h3 {
+    font-family: var(--font-display);
+    font-size: 1rem; font-weight: 700;
+    color: var(--blue-accent);
+    letter-spacing: 0.05em;
+    margin-bottom: 0.75rem;
+  }
+  .card p { color: var(--text-secondary); font-size: 0.88rem; line-height: 1.75; }
+
+  /* ===== GRID LAYOUTS ===== */
+  .grid-3 { display: grid; grid-template-columns: repeat(auto-fit, minmax(280px, 1fr)); gap: 1.5rem; }
+  .grid-2 { display: grid; grid-template-columns: repeat(auto-fit, minmax(320px, 1fr)); gap: 1.5rem; }
+
+  /* ===== 3D MODEL SECTION ===== */
+  #modelo {
+    background: linear-gradient(180deg, transparent, rgba(13,71,161,0.06), transparent);
+  }
+  .model-wrapper {
+    position: relative;
+    background: var(--bg-card);
+    border: 1px solid var(--border-glow);
+    border-radius: 16px;
+    overflow: hidden;
+    aspect-ratio: 16/9;
+    max-height: 520px;
+    display: flex; align-items: center; justify-content: center;
+    box-shadow: 0 0 60px rgba(79,195,247,0.1), inset 0 0 40px rgba(0,0,0,0.5);
+  }
+  .model-corner {
+    position: absolute; width: 20px; height: 20px;
+    border-color: var(--blue-primary);
+    box-shadow: 0 0 8px var(--blue-primary);
+  }
+  .model-corner.tl { top: 12px; left: 12px; border-top: 2px solid; border-left: 2px solid; }
+  .model-corner.tr { top: 12px; right: 12px; border-top: 2px solid; border-right: 2px solid; }
+  .model-corner.bl { bottom: 12px; left: 12px; border-bottom: 2px solid; border-left: 2px solid; }
+  .model-corner.br { bottom: 12px; right: 12px; border-bottom: 2px solid; border-right: 2px solid; }
+  .model-placeholder {
+    display: flex; flex-direction: column; align-items: center; justify-content: center;
+    gap: 1.5rem; text-align: center; padding: 2rem;
+    width: 100%;
+  }
+  .model-placeholder-canvas {
+    width: 100%; height: 100%;
+    position: absolute; inset: 0;
+  }
+  /* This canvas will hold the rotating wireframe animation */
+  #wankel-canvas {
+    position: absolute; inset: 0;
+    width: 100%; height: 100%;
+  }
+  .model-overlay-text {
+    position: absolute; bottom: 1.5rem; left: 50%; transform: translateX(-50%);
+    font-family: var(--font-mono);
+    font-size: 0.65rem; color: var(--text-muted); letter-spacing: 0.15em;
+    background: rgba(5,10,20,0.7);
+    padding: 0.35rem 1rem; border-radius: 50px;
+    border: 1px solid rgba(79,195,247,0.1);
+    white-space: nowrap;
+  }
+  .model-tabs {
+    display: flex; gap: 0.5rem; margin-bottom: 1rem; flex-wrap: wrap;
+  }
+  .model-tab {
+    padding: 0.45rem 1.1rem;
+    background: transparent;
+    border: 1px solid rgba(79,195,247,0.2);
+    border-radius: 6px;
+    color: var(--text-muted);
+    font-family: var(--font-mono);
+    font-size: 0.7rem; letter-spacing: 0.08em;
+    cursor: pointer; transition: all 0.25s;
+  }
+  .model-tab.active, .model-tab:hover {
+    background: rgba(79,195,247,0.12);
+    border-color: var(--blue-primary);
+    color: var(--blue-primary);
+    box-shadow: 0 0 12px rgba(79,195,247,0.2);
+  }
+
+  /* ===== COMPONENTS SECTION ===== */
+  .component-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(260px, 1fr));
+    gap: 1.25rem;
+  }
+  .component-card {
+    background: var(--bg-card);
+    border: 1px solid var(--border-glow);
+    border-radius: 12px;
+    padding: 1.5rem;
+    cursor: pointer;
+    transition: all 0.3s ease;
+    position: relative;
+    overflow: hidden;
+  }
+  .component-card::after {
+    content: '';
+    position: absolute; left: 0; top: 0; bottom: 0; width: 3px;
+    background: var(--blue-primary);
+    box-shadow: 0 0 10px var(--blue-primary);
+    transform: scaleY(0);
+    transition: transform 0.3s;
+    transform-origin: bottom;
+  }
+  .component-card:hover::after { transform: scaleY(1); }
+  .component-card:hover {
+    border-color: rgba(79,195,247,0.4);
+    box-shadow: 0 0 25px rgba(79,195,247,0.1);
+    transform: translateX(4px);
+  }
+  .component-card.active {
+    border-color: rgba(79,195,247,0.5);
+    background: rgba(79,195,247,0.05);
+    box-shadow: 0 0 30px rgba(79,195,247,0.15);
+  }
+  .component-card.active::after { transform: scaleY(1); }
+  .comp-num {
+    font-family: var(--font-mono);
+    font-size: 0.65rem; color: var(--blue-primary);
+    letter-spacing: 0.1em; margin-bottom: 0.5rem;
+    opacity: 0.7;
+  }
+  .comp-name {
+    font-family: var(--font-display);
+    font-size: 0.9rem; font-weight: 700;
+    color: var(--blue-accent); margin-bottom: 0.5rem;
+  }
+  .comp-desc { font-size: 0.8rem; color: var(--text-secondary); line-height: 1.65; }
+  .comp-expand {
+    margin-top: 0.75rem; overflow: hidden;
+    max-height: 0; transition: max-height 0.4s ease;
+  }
+  .comp-expand.open { max-height: 200px; }
+  .comp-expand p { font-size: 0.78rem; color: var(--text-muted); line-height: 1.7; padding-top: 0.5rem; border-top: 1px solid rgba(79,195,247,0.1); margin-top: 0.5rem; }
+
+  /* ===== FUNCIONAMENTO ===== */
+  .phases-container {
+    display: grid; gap: 1.5rem;
+  }
+  .phase-item {
+    display: grid;
+    grid-template-columns: auto 1fr;
+    gap: 1.5rem;
+    align-items: start;
+    padding: 1.75rem;
+    background: var(--bg-card);
+    border: 1px solid var(--border-glow);
+    border-radius: 12px;
+    transition: all 0.3s;
+  }
+  .phase-item:hover {
+    border-color: rgba(79,195,247,0.4);
+    box-shadow: 0 0 25px rgba(79,195,247,0.1);
+  }
+  .phase-num {
+    font-family: var(--font-display);
+    font-size: 2.5rem; font-weight: 900;
+    color: rgba(79,195,247,0.15);
+    line-height: 1; min-width: 60px; text-align: center;
+    text-shadow: 0 0 20px rgba(79,195,247,0.2);
+  }
+  .phase-title {
+    font-family: var(--font-display);
+    font-size: 0.95rem; font-weight: 700;
+    color: var(--blue-primary); margin-bottom: 0.5rem;
+    letter-spacing: 0.05em;
+  }
+  .phase-desc { font-size: 0.88rem; color: var(--text-secondary); line-height: 1.75; }
+  .phase-badge {
+    display: inline-block; margin-top: 0.75rem;
+    font-family: var(--font-mono); font-size: 0.6rem; letter-spacing: 0.1em;
+    padding: 0.2rem 0.6rem; border-radius: 4px;
+    background: rgba(79,195,247,0.1); color: var(--blue-primary);
+    border: 1px solid rgba(79,195,247,0.2);
+  }
+
+  /* ===== TIMELINE ===== */
+  #historico { background: linear-gradient(180deg, transparent, rgba(13,71,161,0.04), transparent); }
+  .timeline {
+    position: relative;
+    padding: 2rem 0;
+  }
+  .timeline-axis {
+    position: absolute; left: 50%; top: 0; bottom: 0; width: 2px;
+    background: linear-gradient(to bottom, transparent, var(--blue-dim), var(--blue-primary), var(--blue-dim), transparent);
+    box-shadow: 0 0 10px rgba(79,195,247,0.3);
+    transform: translateX(-50%);
+  }
+  .timeline-item {
+    display: grid;
+    grid-template-columns: 1fr auto 1fr;
+    gap: 2rem;
+    align-items: center;
+    margin-bottom: 3rem;
+    position: relative;
+  }
+  .timeline-item:nth-child(odd) .tl-content { grid-column: 1; text-align: right; }
+  .timeline-item:nth-child(odd) .tl-empty { grid-column: 3; }
+  .timeline-item:nth-child(even) .tl-content { grid-column: 3; text-align: left; }
+  .timeline-item:nth-child(even) .tl-empty { grid-column: 1; }
+  .tl-dot {
+    grid-column: 2;
+    width: 14px; height: 14px;
+    border-radius: 50%;
+    background: var(--blue-primary);
+    border: 3px solid var(--bg-primary);
+    box-shadow: 0 0 0 2px var(--blue-primary), 0 0 20px var(--blue-primary);
+    cursor: pointer;
+    transition: all 0.3s;
+    z-index: 1;
+    position: relative;
+  }
+  .tl-dot:hover, .tl-dot.active {
+    background: #fff;
+    box-shadow: 0 0 0 3px var(--blue-primary), 0 0 30px var(--blue-primary);
+    transform: scale(1.3);
+  }
+  .tl-content {
+    opacity: 0; transform: translateY(10px);
+    transition: all 0.5s ease;
+  }
+  .tl-content.visible { opacity: 1; transform: translateY(0); }
+  .tl-year {
+    font-family: var(--font-display);
+    font-size: 1.5rem; font-weight: 900;
+    color: var(--blue-primary);
+    text-shadow: 0 0 15px rgba(79,195,247,0.4);
+    line-height: 1;
+  }
+  .tl-event {
+    font-family: var(--font-display);
+    font-size: 0.82rem; font-weight: 600;
+    color: var(--text-primary); margin: 0.25rem 0;
+  }
+  .tl-detail { font-size: 0.78rem; color: var(--text-muted); line-height: 1.6; }
+  .tl-empty { display: flex; }
+
+  /* ===== PROBLEMAS ===== */
+  .problems-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(300px, 1fr));
+    gap: 1.5rem;
+  }
+  .problem-card {
+    background: var(--bg-card);
+    border: 1px solid rgba(220, 80, 80, 0.2);
+    border-radius: 12px;
+    padding: 1.75rem;
+    position: relative; overflow: hidden;
+    transition: all 0.3s;
+  }
+  .problem-card::before {
+    content: '';
+    position: absolute; top: 0; left: 0; right: 0; height: 2px;
+    background: linear-gradient(90deg, transparent, rgba(220,80,80,0.6), transparent);
+  }
+  .problem-card:hover {
+    border-color: rgba(220,80,80,0.4);
+    box-shadow: 0 0 25px rgba(220,80,80,0.08);
+    transform: translateY(-3px);
+  }
+  .prob-icon { font-size: 1.8rem; margin-bottom: 1rem; display: block; }
+  .prob-title {
+    font-family: var(--font-display);
+    font-size: 0.88rem; font-weight: 700;
+    color: #ef9a9a; margin-bottom: 0.5rem;
+    letter-spacing: 0.04em;
+  }
+  .prob-desc { font-size: 0.82rem; color: var(--text-secondary); line-height: 1.75; }
+  .prob-severity {
+    display: inline-flex; align-items: center; gap: 0.4rem;
+    margin-top: 0.75rem;
+    font-family: var(--font-mono); font-size: 0.6rem;
+    color: #ef9a9a; letter-spacing: 0.1em;
+  }
+  .led-red {
+    width: 6px; height: 6px; border-radius: 50%;
+    background: #ef5350;
+    box-shadow: 0 0 6px #ef5350, 0 0 12px #ef5350;
+    animation: ledPulse 1.2s ease-in-out infinite;
+  }
+
+  /* ===== COMPARATIVO ===== */
+  .compare-table {
+    width: 100%; border-collapse: collapse;
+    background: var(--bg-card);
+    border: 1px solid var(--border-glow);
+    border-radius: 12px; overflow: hidden;
+  }
+  .compare-table th {
+    background: rgba(79,195,247,0.1);
+    font-family: var(--font-display);
+    font-size: 0.75rem; letter-spacing: 0.1em;
+    color: var(--blue-primary);
+    padding: 1rem 1.25rem; text-align: left;
+    border-bottom: 1px solid rgba(79,195,247,0.2);
+  }
+  .compare-table td {
+    padding: 0.85rem 1.25rem;
+    font-size: 0.85rem; color: var(--text-secondary);
+    border-bottom: 1px solid rgba(79,195,247,0.05);
+    transition: background 0.2s;
+  }
+  .compare-table tr:hover td { background: rgba(79,195,247,0.03); }
+  .compare-table tr:last-child td { border-bottom: none; }
+  .compare-table .highlight { color: var(--blue-primary); font-weight: 600; }
+  .compare-table .negative { color: #ef9a9a; }
+
+  /* ===== APPLICATIONS ===== */
+  .apps-grid {
+    display: grid; grid-template-columns: repeat(auto-fit, minmax(220px, 1fr)); gap: 1.25rem;
+  }
+  .app-card {
+    background: var(--bg-card);
+    border: 1px solid var(--border-glow);
+    border-radius: 12px; padding: 1.5rem;
+    text-align: center; transition: all 0.3s;
+    cursor: default;
+  }
+  .app-card:hover {
+    border-color: rgba(79,195,247,0.4);
+    box-shadow: 0 0 20px rgba(79,195,247,0.1);
+    transform: translateY(-3px);
+  }
+  .app-emoji { font-size: 2.2rem; margin-bottom: 0.75rem; display: block; }
+  .app-name {
+    font-family: var(--font-display);
+    font-size: 0.82rem; font-weight: 700;
+    color: var(--blue-accent); margin-bottom: 0.4rem;
+  }
+  .app-detail { font-size: 0.75rem; color: var(--text-muted); line-height: 1.6; }
+
+  /* ===== LED STRIP ===== */
+  .led-strip {
+    display: flex; gap: 6px;
+    padding: 0.5rem; justify-content: center;
+    margin: 1.5rem 0;
+  }
+  .led-strip-dot {
+    width: 8px; height: 8px; border-radius: 50%;
+    background: var(--led-on);
+    box-shadow: 0 0 6px var(--led-on);
+    animation: ledSeq 1.5s ease-in-out infinite;
+  }
+  .led-strip-dot:nth-child(1) { animation-delay: 0s; }
+  .led-strip-dot:nth-child(2) { animation-delay: 0.15s; }
+  .led-strip-dot:nth-child(3) { animation-delay: 0.3s; }
+  .led-strip-dot:nth-child(4) { animation-delay: 0.45s; }
+  .led-strip-dot:nth-child(5) { animation-delay: 0.6s; }
+  .led-strip-dot:nth-child(6) { animation-delay: 0.75s; }
+  .led-strip-dot:nth-child(7) { animation-delay: 0.9s; }
+  @keyframes ledSeq {
+    0%,100% { opacity: 0.2; box-shadow: 0 0 2px var(--led-on); }
+    50% { opacity: 1; box-shadow: 0 0 8px var(--led-on), 0 0 16px var(--led-on); }
+  }
+
+  /* ===== FOOTER ===== */
+  footer {
+    position: relative; z-index: 1;
+    border-top: 1px solid rgba(79,195,247,0.1);
+    padding: 3rem 2rem;
+    text-align: center;
+    background: rgba(5,10,20,0.8);
+  }
+  .footer-logo {
+    font-family: var(--font-display);
+    font-size: 1.1rem; font-weight: 700;
+    color: var(--blue-primary);
+    text-shadow: 0 0 15px rgba(79,195,247,0.4);
+    margin-bottom: 0.5rem;
+    letter-spacing: 0.15em;
+  }
+  .footer-info { font-size: 0.75rem; color: var(--text-muted); line-height: 1.8; }
+  .footer-divider {
+    width: 80px; height: 1px; margin: 1.5rem auto;
+    background: linear-gradient(90deg, transparent, var(--blue-dim), transparent);
+  }
+
+  /* ===== ANIMATIONS ===== */
+  @keyframes fadeInDown { from { opacity: 0; transform: translateY(-20px); } to { opacity: 1; transform: translateY(0); } }
+  @keyframes fadeInUp { from { opacity: 0; transform: translateY(20px); } to { opacity: 1; transform: translateY(0); } }
+  .fade-in { opacity: 0; transform: translateY(24px); transition: opacity 0.7s ease, transform 0.7s ease; }
+  .fade-in.visible { opacity: 1; transform: translateY(0); }
+
+  /* ===== GLOW DIVIDERS ===== */
+  .glow-divider {
+    width: 100%; height: 1px;
+    background: linear-gradient(90deg, transparent 0%, rgba(79,195,247,0.3) 50%, transparent 100%);
+    box-shadow: 0 0 10px rgba(79,195,247,0.1);
+    margin: 0;
+  }
+
+  /* ===== STAT NUMBERS ===== */
+  .stats-row {
+    display: flex; gap: 1.5rem; flex-wrap: wrap; justify-content: center;
+    margin: 3rem 0;
+  }
+  .stat-block {
+    text-align: center; min-width: 140px;
+    padding: 1.5rem 2rem;
+    background: var(--bg-card);
+    border: 1px solid var(--border-glow);
+    border-radius: 12px;
+    position: relative; overflow: hidden;
+    transition: all 0.3s;
+  }
+  .stat-block:hover {
+    border-color: rgba(79,195,247,0.4);
+    box-shadow: 0 0 30px rgba(79,195,247,0.15);
+  }
+  .stat-block::before {
+    content: '';
+    position: absolute; bottom: 0; left: 0; right: 0; height: 2px;
+    background: linear-gradient(90deg, transparent, var(--blue-primary), transparent);
+    box-shadow: 0 0 8px var(--blue-primary);
+  }
+  .stat-num {
+    font-family: var(--font-display);
+    font-size: 2rem; font-weight: 900;
+    color: var(--blue-primary);
+    text-shadow: 0 0 20px rgba(79,195,247,0.5);
+    display: block;
+  }
+  .stat-unit { font-size: 0.9rem; color: var(--blue-accent); }
+  .stat-label { font-family: var(--font-mono); font-size: 0.62rem; color: var(--text-muted); letter-spacing: 0.1em; margin-top: 0.25rem; }
+
+  /* ===== THREE.JS CONTAINER ===== */
+  #threejs-container {
+    position: absolute; inset: 0;
+    width: 100%; height: 100%;
+  }
+  #threejs-container canvas {
+    width: 100% !important;
+    height: 100% !important;
+    display: block;
+  }
+  .model-loading {
+    position: absolute; inset: 0;
+    display: flex; flex-direction: column;
+    align-items: center; justify-content: center;
+    gap: 1rem; z-index: 2;
+    background: var(--bg-card);
+    transition: opacity 0.5s ease;
+  }
+  .model-loading.hidden { opacity: 0; pointer-events: none; }
+  .model-loading-spinner {
+    width: 40px; height: 40px;
+    border: 2px solid rgba(79,195,247,0.15);
+    border-top-color: var(--blue-primary);
+    border-radius: 50%;
+    animation: spin 0.9s linear infinite;
+    box-shadow: 0 0 15px rgba(79,195,247,0.3);
+  }
+  .model-loading span {
+    font-family: var(--font-mono);
+    font-size: 0.65rem; letter-spacing: 0.2em;
+    color: var(--blue-primary);
+  }
+  @keyframes spin { to { transform: rotate(360deg); } }
+
+  @media (max-width: 768px) {
+    nav { padding: 0 1.25rem; }
+    .nav-links { display: none; }
+    .hamburger { display: flex; }
+    section { padding: 4rem 1.25rem; }
+    .timeline-axis { left: 20px; }
+    .timeline-item { grid-template-columns: auto 1fr; gap: 1rem; }
+    .timeline-item:nth-child(odd) .tl-content,
+    .timeline-item:nth-child(even) .tl-content { grid-column: 2; text-align: left; }
+    .timeline-item .tl-empty { display: none; }
+    .tl-dot { grid-column: 1; }
+    .hero-specs { gap: 1rem; }
+  }
+  @media (max-width: 480px) {
+    .hero-title { font-size: 2rem; }
+    .grid-3, .grid-2, .component-grid, .problems-grid, .apps-grid { grid-template-columns: 1fr; }
+    .phase-item { grid-template-columns: 1fr; }
+    .phase-num { font-size: 1.5rem; }
+    .stats-row { gap: 1rem; }
+  }
+</style>
+</head>
+<body>
+
+<!-- BG EFFECTS -->
+<div class="bg-grid"></div>
+<div class="bg-radial"></div>
+
+<!-- NAVBAR -->
+<nav id="navbar">
+  <a href="#hero" class="nav-brand">
+    <div class="nav-logo">
+      <svg viewBox="0 0 24 24" fill="none" stroke="#4fc3f7" stroke-width="1.5">
+        <path d="M12 2L2 7l10 5 10-5-10-5zM2 17l10 5 10-5M2 12l10 5 10-5"/>
+      </svg>
+    </div>
+    <div class="nav-title-group">
+      <span class="nav-title">MOTOR WANKEL</span>
+      <span class="nav-subtitle">FACENS · TRABALHO ACADÊMICO</span>
+    </div>
+  </a>
+  <ul class="nav-links">
+    <li><a href="#modelo">Modelo 3D</a></li>
+    <li><a href="#componentes">Componentes</a></li>
+    <li><a href="#funcionamento">Funcionamento</a></li>
+    <li><a href="#historico">História</a></li>
+    <li><a href="#problemas">Problemas</a></li>
+    <li><a href="#aplicacoes">Aplicações</a></li>
+  </ul>
+  <button class="hamburger" id="hamburger" aria-label="Menu">
+    <span></span><span></span><span></span>
+  </button>
+</nav>
+
+<!-- MOBILE MENU -->
+<div class="mobile-menu" id="mobileMenu">
+  <a href="#modelo" onclick="closeMobile()">Modelo 3D</a>
+  <a href="#componentes" onclick="closeMobile()">Componentes</a>
+  <a href="#funcionamento" onclick="closeMobile()">Funcionamento</a>
+  <a href="#historico" onclick="closeMobile()">História</a>
+  <a href="#problemas" onclick="closeMobile()">Problemas</a>
+  <a href="#aplicacoes" onclick="closeMobile()">Aplicações</a>
+</div>
+
+<!-- HERO -->
+<section id="hero">
+  <div class="hero-badge">
+    <span class="led-dot"></span>
+    ENGENHARIA MECÂNICA · FACENS 2024
+  </div>
+  <h1 class="hero-title">
+    <span class="title-gradient">Motor Wankel</span>
+  </h1>
+  <p class="hero-sub">ROTARY ENGINE · KREISKOLBENMOTOR</p>
+  <p class="hero-desc">
+    O revolucionário motor de pistão rotativo desenvolvido por Felix Wankel na década de 1950 — uma das mais elegantes soluções de engenharia da história da mecânica.
+  </p>
+  <div class="hero-cta">
+    <a href="#modelo" class="btn-primary">
+      <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M21 16V8a2 2 0 00-1-1.73l-7-4a2 2 0 00-2 0l-7 4A2 2 0 003 8v8a2 2 0 001 1.73l7 4a2 2 0 002 0l7-4A2 2 0 0021 16z"/></svg>
+      Ver Modelo 3D
+    </a>
+    <a href="#historico" class="btn-outline">
+      <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="10"/><polyline points="12,6 12,12 16,14"/></svg>
+      Linha do Tempo
+    </a>
+  </div>
+  <div class="hero-specs">
+    <div class="spec-item">
+      <span class="spec-val">1954</span>
+      <span class="spec-lbl">ANO DA PATENTE</span>
+    </div>
+    <div class="spec-item">
+      <span class="spec-val">3</span>
+      <span class="spec-lbl">CÂMARAS</span>
+    </div>
+    <div class="spec-item">
+      <span class="spec-val">~40%</span>
+      <span class="spec-lbl">MAIS LEVE</span>
+    </div>
+    <div class="spec-item">
+      <span class="spec-val">9000+</span>
+      <span class="spec-lbl">RPM MÁX</span>
+    </div>
+  </div>
+  <div class="scroll-indicator">
+    <span>SCROLL</span>
+    <div class="scroll-arrow"></div>
+  </div>
+</section>
+
+<div class="glow-divider"></div>
+
+<!-- MODELO 3D -->
+<section id="modelo">
+  <div class="container">
+    <div class="section-header fade-in">
+      <span class="section-tag">// VISUALIZAÇÃO</span>
+      <h2 class="section-title">Modelo <span>3D</span> Interativo</h2>
+      <div class="section-line"></div>
+      <p class="section-desc">Explore a geometria única do motor rotativo. O modelo abaixo representa a visualização interativa — utilize os controles para rotacionar e examinar cada componente.</p>
+    </div>
+
+    <div class="model-tabs fade-in">
+      <button class="model-tab active" onclick="switchView('geral')">Vista Geral</button>
+      <button class="model-tab" onclick="switchView('rotor')">Rotor</button>
+      <button class="model-tab" onclick="switchView('estator')">Estator</button>
+      <button class="model-tab" onclick="switchView('eixo')">Eixo Excêntrico</button>
+    </div>
+
+    <div class="model-wrapper fade-in">
+      <div class="model-corner tl"></div>
+      <div class="model-corner tr"></div>
+      <div class="model-corner bl"></div>
+      <div class="model-corner br"></div>
+      <div id="threejs-container"></div>
+      <div class="model-loading" id="modelLoading">
+        <div class="model-loading-spinner"></div>
+        <span>CARREGANDO MODELO 3D...</span>
+      </div>
+      <div class="model-overlay-text" id="modelOverlay">
+        ⟳ ARRASTE PARA ROTACIONAR · SCROLL PARA ZOOM
+      </div>
+    </div>
+
+    <div class="led-strip">
+      <div class="led-strip-dot"></div>
+      <div class="led-strip-dot"></div>
+      <div class="led-strip-dot"></div>
+      <div class="led-strip-dot"></div>
+      <div class="led-strip-dot"></div>
+      <div class="led-strip-dot"></div>
+      <div class="led-strip-dot"></div>
+    </div>
+  </div>
+</section>
+
+<div class="glow-divider"></div>
+
+<!-- COMPONENTES -->
+<section id="componentes">
+  <div class="container">
+    <div class="section-header fade-in">
+      <span class="section-tag">// ANATOMIA</span>
+      <h2 class="section-title"><span>Componentes</span> do Motor</h2>
+      <div class="section-line"></div>
+      <p class="section-desc">Cada peça do motor Wankel desempenha um papel preciso no ciclo de combustão rotativa. Clique em cada componente para expandir os detalhes técnicos.</p>
+    </div>
+
+    <div class="component-grid fade-in" id="compGrid">
+
+      <div class="component-card" onclick="toggleComp(this)">
+        <div class="comp-num">// 01</div>
+        <div class="comp-name">Rotor Triangular (Epitróquide)</div>
+        <div class="comp-desc">Peça central do motor, com formato de triângulo de Reuleaux. Substitui o pistão convencional.</div>
+        <div class="comp-expand">
+          <p>Fabricado em alumínio ou ferro fundido, o rotor possui três faces levemente côncavas que definem as câmaras de trabalho. Cada vértice carrega selos de ápice responsáveis pela vedação das câmaras. A geometria epitrocóide garante que cada vértice percorra a parede interna do estator continuamente.</p>
+        </div>
+      </div>
+
+      <div class="component-card" onclick="toggleComp(this)">
+        <div class="comp-num">// 02</div>
+        <div class="comp-name">Estator (Carcaça)</div>
+        <div class="comp-desc">Câmara oval de formato epitrocóide que envolve o rotor, onde ocorrem os ciclos termodinâmicos.</div>
+        <div class="comp-expand">
+          <p>Usualmente usinado em ferro fundido de alta resistência com revestimento interno cromado ou nikasil. Seu perfil interno é matematicamente descrito por uma curva epitróquide que permite ao rotor girar sem interferência, mantendo contato constante nos três vértices.</p>
+        </div>
+      </div>
+
+      <div class="component-card" onclick="toggleComp(this)">
+        <div class="comp-num">// 03</div>
+        <div class="comp-name">Eixo Excêntrico (Virabrequim)</div>
+        <div class="comp-desc">Equivalente ao virabrequim convencional. Converte o movimento orbital do rotor em rotação de saída.</div>
+        <div class="comp-expand">
+          <p>Possui um excêntrico (came) sobre o qual o rotor gira. A excentricidade determina a relação de compressão e o curso do ciclo. Para cada rotação completa do rotor, o eixo excêntrico completa três rotações, resultando em alta relação de potência por volume.</p>
+        </div>
+      </div>
+
+      <div class="component-card" onclick="toggleComp(this)">
+        <div class="comp-num">// 04</div>
+        <div class="comp-name">Selos de Ápice</div>
+        <div class="comp-desc">Vedadores nos vértices do rotor — componente de maior desgaste e ponto crítico do motor.</div>
+        <div class="comp-expand">
+          <p>Fabricados em grafite ou cerâmica de carbono, os selos de ápice (apex seals) deslizam continuamente sobre a parede do estator. São mantidos em contato por molas e pela força centrífuga. Sua falha é a causa mais comum de colapso do motor Wankel, especialmente em regimes elevados de temperatura.</p>
+        </div>
+      </div>
+
+      <div class="component-card" onclick="toggleComp(this)">
+        <div class="comp-num">// 05</div>
+        <div class="comp-name">Placas Laterais</div>
+        <div class="comp-desc">Flanges que fecham as câmaras nas faces do rotor, garantindo o fechamento axial das câmaras de combustão.</div>
+        <div class="comp-expand">
+          <p>Também chamadas de tampas laterais, são presas ao estator e possuem canais de arrefecimento integrados. Sobre elas estão os selos laterais e de canto do rotor. A vedação lateral é fundamental para a eficiência da compressão e para evitar mistura entre câmaras adjacentes.</p>
+        </div>
+      </div>
+
+      <div class="component-card" onclick="toggleComp(this)">
+        <div class="comp-num">// 06</div>
+        <div class="comp-name">Velas de Ignição</div>
+        <div class="comp-desc">O motor Wankel geralmente utiliza duas velas por rotor para ignição eficiente da câmara alongada.</div>
+        <div class="comp-expand">
+          <p>A câmara de combustão do Wankel é longa e estreita, o que dificulta a propagação completa da chama com uma única vela. Por isso, dois plugs de ignição são usados — leading (frontal) e trailing (traseiro) — com timings ligeiramente diferentes para queima otimizada.</p>
+        </div>
+      </div>
+
+      <div class="component-card" onclick="toggleComp(this)">
+        <div class="comp-num">// 07</div>
+        <div class="comp-name">Sistema de Arrefecimento</div>
+        <div class="comp-desc">O estator é arrefecido por ar (versões antigas) ou por líquido circulando em canais na carcaça.</div>
+        <div class="comp-expand">
+          <p>Diferentemente do motor convencional, o Wankel não possui válvulas no topo do cilindro — o arrefecimento do teto da câmara é feito exclusivamente pelas faces do rotor e pelos canais na carcaça. A gestão térmica é crítica para a longevidade dos selos de ápice.</p>
+        </div>
+      </div>
+
+      <div class="component-card" onclick="toggleComp(this)">
+        <div class="comp-num">// 08</div>
+        <div class="comp-name">Engrenagem Planetária</div>
+        <div class="comp-desc">Conjunto de engrenagens que sincroniza a rotação do rotor com o eixo excêntrico na proporção 3:1.</div>
+        <div class="comp-expand">
+          <p>A engrenagem estacionária (fixada na placa lateral) e a engrenagem do rotor (interna) garantem que o rotor gire exatamente 1 volta para cada 3 rotações do eixo excêntrico. Essa relação fixa é fundamental para manter a geometria das câmaras e o sincronismo do ciclo termodinâmico.</p>
+        </div>
+      </div>
+
+    </div>
+  </div>
+</section>
+
+<div class="glow-divider"></div>
+
+<!-- FUNCIONAMENTO -->
+<section id="funcionamento">
+  <div class="container">
+    <div class="section-header fade-in">
+      <span class="section-tag">// TERMODINÂMICA</span>
+      <h2 class="section-title">Como <span>Funciona</span></h2>
+      <div class="section-line"></div>
+      <p class="section-desc">O motor Wankel executa o ciclo de quatro tempos (Otto) de forma contínua e rotativa, sem movimento alternativo de pistões.</p>
+    </div>
+
+    <div class="stats-row fade-in">
+      <div class="stat-block">
+        <span class="stat-num">3<span class="stat-unit">×</span></span>
+        <span class="stat-label">ROTAÇÕES DO EIXO POR VOLTA DO ROTOR</span>
+      </div>
+      <div class="stat-block">
+        <span class="stat-num">3</span>
+        <span class="stat-label">CÂMARAS SIMULTÂNEAS</span>
+      </div>
+      <div class="stat-block">
+        <span class="stat-num">1</span>
+        <span class="stat-label">IGNIÇÃO POR CÂMARA / CICLO</span>
+      </div>
+      <div class="stat-block">
+        <span class="stat-num">~10<span class="stat-unit">:1</span></span>
+        <span class="stat-label">RELAÇÃO DE COMPRESSÃO TÍPICA</span>
+      </div>
+    </div>
+
+    <div class="phases-container fade-in">
+      <div class="phase-item">
+        <div class="phase-num">01</div>
+        <div>
+          <div class="phase-title">ADMISSÃO</div>
+          <p class="phase-desc">Enquanto o rotor gira, uma das faces passa pela porta de admissão. O volume da câmara aumenta progressivamente, criando vácuo que aspira a mistura ar-combustível (ou apenas ar, em motores de injeção direta). A câmara continua expandindo até o próximo ciclo começar.</p>
+          <span class="phase-badge">PORTA DE ADMISSÃO ABERTA</span>
+        </div>
+      </div>
+
+      <div class="phase-item">
+        <div class="phase-num">02</div>
+        <div>
+          <div class="phase-title">COMPRESSÃO</div>
+          <p class="phase-desc">A câmara é fechada pelas vedações de ápice e o rotor continua seu movimento orbital. O volume diminui progressivamente ao longo da parede do estator, comprimindo a mistura ar-combustível até a relação de compressão projetada. O processo é gradual e suave, sem impacto brusco.</p>
+          <span class="phase-badge">TODAS AS PORTAS FECHADAS</span>
+        </div>
+      </div>
+
+      <div class="phase-item">
+        <div class="phase-num">03</div>
+        <div>
+          <div class="phase-title">COMBUSTÃO / EXPANSÃO</div>
+          <p class="phase-desc">No ponto de máxima compressão, as velas de ignição disparam. A combustão provoca expansão rápida dos gases, empurrando a face do rotor e gerando torque no eixo excêntrico. As duas velas (leading e trailing) garantem combustão completa da câmara alongada. Esta é a fase que produz trabalho.</p>
+          <span class="phase-badge">IGNIÇÃO DUPLA · MÁXIMA POTÊNCIA</span>
+        </div>
+      </div>
+
+      <div class="phase-item">
+        <div class="phase-num">04</div>
+        <div>
+          <div class="phase-title">EXAUSTÃO</div>
+          <p class="phase-desc">O rotor expõe a porta de exaustão e a câmara começa a contrair, expulsando os gases queimados. O processo acontece continuamente enquanto as outras duas câmaras completam seus próprios ciclos simultaneamente — resultando em um motor extremamente suave e com alto número de eventos de potência por rotação.</p>
+          <span class="phase-badge">PORTA DE EXAUSTÃO ABERTA</span>
+        </div>
+      </div>
+    </div>
+
+    <div class="card fade-in" style="margin-top:2rem; background: rgba(79,195,247,0.04);">
+      <h3 style="color:var(--blue-primary); font-size:0.9rem; margin-bottom:0.75rem;">⚡ Vantagem do Ciclo Simultâneo</h3>
+      <p>Em um motor Wankel de rotor único, há <strong style="color:var(--blue-accent);">3 eventos de potência por rotação do rotor</strong> — o equivalente a um motor de 6 cilindros em linha em termos de suavidade. Para cada rotação do rotor, o eixo excêntrico completa 3 rotações, então a frequência de potência em relação ao eixo de saída é equivalente a um motor de 2 cilindros de quatro tempos convencional.</p>
+    </div>
+  </div>
+</section>
+
+<div class="glow-divider"></div>
+
+<!-- HISTÓRICO / LINHA DO TEMPO -->
+<section id="historico">
+  <div class="container">
+    <div class="section-header fade-in">
+      <span class="section-tag">// CRONOLOGIA</span>
+      <h2 class="section-title">Linha do <span>Tempo</span></h2>
+      <div class="section-line"></div>
+      <p class="section-desc">A trajetória do motor rotativo — da concepção teórica à ressurgência tecnológica no século XXI.</p>
+    </div>
+
+    <div class="timeline fade-in" id="timeline">
+      <div class="timeline-axis"></div>
+
+      <div class="timeline-item">
+        <div class="tl-content">
+          <div class="tl-year">1954</div>
+          <div class="tl-event">Patente Original</div>
+          <div class="tl-detail">Felix Wankel, engenheiro alemão, registra a patente do motor rotativo em parceria com a NSU Motorenwerke AG. O conceito rompe com 100 anos de tradição do pistão alternativo.</div>
+        </div>
+        <div class="tl-dot" onclick="activateDot(this)"></div>
+        <div class="tl-empty"></div>
+      </div>
+
+      <div class="timeline-item">
+        <div class="tl-empty"></div>
+        <div class="tl-dot" onclick="activateDot(this)"></div>
+        <div class="tl-content">
+          <div class="tl-year">1957</div>
+          <div class="tl-event">Primeiro Protótipo Funcional</div>
+          <div class="tl-detail">NSU testa o primeiro motor Wankel funcional. O motor produz potência contínua e sem vibração, impressionando engenheiros da época com sua leveza e compacidade.</div>
+        </div>
+      </div>
+
+      <div class="timeline-item">
+        <div class="tl-content">
+          <div class="tl-year">1964</div>
+          <div class="tl-event">NSU Spider — Primeiro Carro de Série</div>
+          <div class="tl-detail">O NSU Spider se torna o primeiro automóvel de produção em série equipado com motor Wankel. Motor KKM 502 de 50 cv — revolucionário para a época.</div>
+        </div>
+        <div class="tl-dot" onclick="activateDot(this)"></div>
+        <div class="tl-empty"></div>
+      </div>
+
+      <div class="timeline-item">
+        <div class="tl-empty"></div>
+        <div class="tl-dot" onclick="activateDot(this)"></div>
+        <div class="tl-content">
+          <div class="tl-year">1967</div>
+          <div class="tl-event">Mazda Cosmo Sport 110S</div>
+          <div class="tl-detail">A Mazda lança o lendário Cosmo, iniciando décadas de domínio japonês no desenvolvimento do motor rotativo. A empresa investiu pesadamente para resolver os problemas crônicos de durabilidade.</div>
+        </div>
+      </div>
+
+      <div class="timeline-item">
+        <div class="tl-content">
+          <div class="tl-year">1978</div>
+          <div class="tl-event">Mazda RX-7 (SA22C)</div>
+          <div class="tl-detail">Lançamento do icônico RX-7, com motor 12A birotativo de 105 cv. O design aerodinâmico e o baixo centro de gravidade tornam-no um esportivo lendário com culto global até hoje.</div>
+        </div>
+        <div class="tl-dot" onclick="activateDot(this)"></div>
+        <div class="tl-empty"></div>
+      </div>
+
+      <div class="timeline-item">
+        <div class="tl-empty"></div>
+        <div class="tl-dot" onclick="activateDot(this)"></div>
+        <div class="tl-content">
+          <div class="tl-year">1991</div>
+          <div class="tl-event">Vitória em Le Mans</div>
+          <div class="tl-detail">O Mazda 787B com motor 4 rotores R26B de 700 cv vence as 24 Horas de Le Mans — única vitória de um motor não-pistão na história da corrida. Som único e inconfundível.</div>
+        </div>
+      </div>
+
+      <div class="timeline-item">
+        <div class="tl-content">
+          <div class="tl-year">2003</div>
+          <div class="tl-event">Mazda RX-8</div>
+          <div class="tl-detail">Último carro com motor Wankel de produção em série (RENESIS). Motor 13B-MSP de 231 cv, sem turbo, atingindo 9.000 RPM. Encerrado em 2012 devido a normas de emissões.</div>
+        </div>
+        <div class="tl-dot" onclick="activateDot(this)"></div>
+        <div class="tl-empty"></div>
+      </div>
+
+      <div class="timeline-item">
+        <div class="tl-empty"></div>
+        <div class="tl-dot" onclick="activateDot(this)"></div>
+        <div class="tl-content">
+          <div class="tl-year">2023</div>
+          <div class="tl-event">Renascimento como Range Extender</div>
+          <div class="tl-detail">Mazda MX-30 R-EV apresenta motor Wankel de rotor único como gerador de alcance estendido para veículo híbrido plug-in. O rotativo renasce adaptado à era elétrica.</div>
+        </div>
+      </div>
+
+    </div>
+  </div>
+</section>
+
+<div class="glow-divider"></div>
+
+<!-- PROBLEMAS CRÔNICOS -->
+<section id="problemas">
+  <div class="container">
+    <div class="section-header fade-in">
+      <span class="section-tag">// ANÁLISE CRÍTICA</span>
+      <h2 class="section-title">Problemas <span>Crônicos</span></h2>
+      <div class="section-line"></div>
+      <p class="section-desc">Apesar de seu genial conceito, o motor Wankel apresenta desafios de engenharia que limitaram sua adoção em larga escala.</p>
+    </div>
+
+    <div class="problems-grid fade-in">
+
+      <div class="problem-card">
+        <span class="prob-icon">🔴</span>
+        <div class="prob-title">Desgaste dos Selos de Ápice</div>
+        <p class="prob-desc">Os apex seals deslizam continuamente contra a parede do estator, sem a lubrificação que pistões convencionais recebem. O desgaste prematuro leva à perda de compressão e falha catastrófica — o calcanhar de Aquiles histórico do motor.</p>
+        <div class="prob-severity"><span class="led-red"></span> SEVERIDADE: CRÍTICA</div>
+      </div>
+
+      <div class="problem-card">
+        <span class="prob-icon">⛽</span>
+        <div class="prob-title">Alto Consumo de Combustível</div>
+        <p class="prob-desc">A câmara de combustão longa e estreita dificulta a queima completa do combustível. A eficiência termodinâmica é menor que em motores de pistão equivalentes, resultando em consumo significativamente maior e emissões elevadas de hidrocarbonetos não queimados (HC).</p>
+        <div class="prob-severity"><span class="led-red"></span> SEVERIDADE: ALTA</div>
+      </div>
+
+      <div class="problem-card">
+        <span class="prob-icon">🌡️</span>
+        <div class="prob-title">Gestão Térmica Crítica</div>
+        <p class="prob-desc">A câmara de combustão permanece em posição fixa no estator (ao contrário do pistão que move a câmara). Isso cria pontos de alta temperatura estacionários que exigem arrefecimento intensivo e materiais especiais para evitar empenamento do estator.</p>
+        <div class="prob-severity"><span class="led-red"></span> SEVERIDADE: ALTA</div>
+      </div>
+
+      <div class="problem-card">
+        <span class="prob-icon">💧</span>
+        <div class="prob-title">Consumo de Óleo</div>
+        <p class="prob-desc">Para lubrificar os selos de ápice e as faces do rotor, o sistema injeta óleo diretamente na câmara de combustão. Este óleo é queimado junto com o combustível, aumentando emissões e exigindo monitoramento constante do nível de óleo lubrificante.</p>
+        <div class="prob-severity"><span class="led-red"></span> SEVERIDADE: MODERADA/ALTA</div>
+      </div>
+
+      <div class="problem-card">
+        <span class="prob-icon">📋</span>
+        <div class="prob-title">Conformidade com Emissões</div>
+        <p class="prob-desc">A combustão incompleta e o óleo queimado geram altos índices de hidrocarbonetos não queimados (HC), dificultando o atendimento às normas Euro e EPA progressivamente mais rígidas. Foi o principal motivo do encerramento do RX-8 em 2012.</p>
+        <div class="prob-severity"><span class="led-red"></span> SEVERIDADE: FATAL (MERCADO)</div>
+      </div>
+
+      <div class="problem-card">
+        <span class="prob-icon">🔧</span>
+        <div class="prob-title">Manutenção Especializada</div>
+        <p class="prob-desc">A mecânica rotativa exige treinamento específico — poucos profissionais dominam o motor. O custo e disponibilidade de peças (especialmente selos de ápice e kits de rotor) são maiores que motores convencionais, elevando o custo total de propriedade.</p>
+        <div class="prob-severity"><span class="led-red"></span> SEVERIDADE: MODERADA</div>
+      </div>
+
+    </div>
+  </div>
+</section>
+
+<div class="glow-divider"></div>
+
+<!-- COMPARATIVO -->
+<section id="comparativo">
+  <div class="container">
+    <div class="section-header fade-in">
+      <span class="section-tag">// ANÁLISE COMPARATIVA</span>
+      <h2 class="section-title">Wankel <span>vs.</span> Pistão</h2>
+      <div class="section-line"></div>
+    </div>
+    <div class="fade-in" style="overflow-x:auto;">
+      <table class="compare-table">
+        <thead>
+          <tr>
+            <th>CARACTERÍSTICA</th>
+            <th>MOTOR WANKEL</th>
+            <th>MOTOR DE PISTÃO</th>
+          </tr>
+        </thead>
+        <tbody>
+          <tr><td>Relação Potência/Peso</td><td class="highlight">Excelente (↑ 40-50%)</td><td>Moderada</td></tr>
+          <tr><td>Suavidade de Funcionamento</td><td class="highlight">Excepcional (sem vibração)</td><td>Moderada a boa</td></tr>
+          <tr><td>Número de Peças Móveis</td><td class="highlight">Muito menor</td><td>Alto (válvulas, pistões, bielas)</td></tr>
+          <tr><td>RPM Máximo</td><td class="highlight">9.000 - 10.000 RPM</td><td>5.000 - 8.000 RPM</td></tr>
+          <tr><td>Eficiência Térmica</td><td class="negative">Baixa (25-30%)</td><td>Melhor (30-40%)</td></tr>
+          <tr><td>Consumo de Combustível</td><td class="negative">Alto</td><td>Menor</td></tr>
+          <tr><td>Emissões HC</td><td class="negative">Elevadas</td><td>Mais controladas</td></tr>
+          <tr><td>Durabilidade dos Selos</td><td class="negative">Crítica (ponto fraco)</td><td>Anéis duráveis</td></tr>
+          <tr><td>Tamanho / Compacidade</td><td class="highlight">Extremamente compacto</td><td>Volumoso</td></tr>
+          <tr><td>Custo de Manutenção</td><td class="negative">Alto (especialistas)</td><td>Mais acessível</td></tr>
+        </tbody>
+      </table>
+    </div>
+  </div>
+</section>
+
+<div class="glow-divider"></div>
+
+<!-- APLICAÇÕES -->
+<section id="aplicacoes">
+  <div class="container">
+    <div class="section-header fade-in">
+      <span class="section-tag">// APLICAÇÕES</span>
+      <h2 class="section-title">Onde foi <span>Utilizado</span></h2>
+      <div class="section-line"></div>
+      <p class="section-desc">A compacidade e suavidade do motor rotativo o tornaram atraente para diversas aplicações além do automóvel.</p>
+    </div>
+    <div class="apps-grid fade-in">
+      <div class="app-card">
+        <span class="app-emoji">🏎️</span>
+        <div class="app-name">Automóveis Esportivos</div>
+        <div class="app-detail">Mazda RX-7, RX-8, Cosmo; NSU Ro 80; Citroën GS Birotor</div>
+      </div>
+      <div class="app-card">
+        <span class="app-emoji">✈️</span>
+        <div class="app-name">Aviação Leve</div>
+        <div class="app-detail">Motores Rotax e experimentais para aeronaves ultraleves e drones militares</div>
+      </div>
+      <div class="app-card">
+        <span class="app-emoji">🏍️</span>
+        <div class="app-name">Motocicletas</div>
+        <div class="app-detail">Suzuki RE5 (1974-1977) e Norton Classic Rotary (uso policial no Reino Unido)</div>
+      </div>
+      <div class="app-card">
+        <span class="app-emoji">🚤</span>
+        <div class="app-name">Embarcações</div>
+        <div class="app-detail">Motos aquáticas e lanchas de corrida beneficiadas pela compacidade e alta RPM</div>
+      </div>
+      <div class="app-card">
+        <span class="app-emoji">🏁</span>
+        <div class="app-name">Motorsport</div>
+        <div class="app-detail">Le Mans (Mazda 787B), IMSA, Daytona — desempenho excepcional em resistência</div>
+      </div>
+      <div class="app-card">
+        <span class="app-emoji">⚡</span>
+        <div class="app-name">Range Extender EV</div>
+        <div class="app-detail">Mazda MX-30 R-EV (2023): gerador elétrico de alta eficiência volumétrica para veículos híbridos</div>
+      </div>
+      <div class="app-card">
+        <span class="app-emoji">🎯</span>
+        <div class="app-name">Militares / UAVs</div>
+        <div class="app-detail">Drones de reconhecimento utilizam motores Wankel pela silenciosidade relativa e densidade de potência</div>
+      </div>
+      <div class="app-card">
+        <span class="app-emoji">🔋</span>
+        <div class="app-name">Geradores Portáteis</div>
+        <div class="app-detail">Geradores de emergência que exigem máxima potência em mínimo volume e peso</div>
+      </div>
+    </div>
+  </div>
+</section>
+
+<div class="glow-divider"></div>
+
+<!-- FOOTER -->
+<footer>
+  <div class="footer-logo">MOTOR WANKEL</div>
+  <div class="footer-info">
+    Trabalho Acadêmico — Engenharia Mecânica<br>
+    Faculdade de Engenharia e Ciências de Sorocaba — FACENS<br>
+    Desenvolvido com HTML · CSS · JavaScript
+  </div>
+  <div class="footer-divider"></div>
+  <div style="font-family:var(--font-mono); font-size:0.6rem; color:var(--text-muted); letter-spacing:0.1em;">
+    FACENS · 2024 · SISTEMA DE PROPULSÃO ROTATIVA
+  </div>
+</footer>
+
+<script type="importmap">
+{
+  "imports": {
+    "three": "https://unpkg.com/three@0.160.0/build/three.module.js",
+    "three/addons/": "https://unpkg.com/three@0.160.0/examples/jsm/"
+  }
+}
+</script>
+
+<!-- ================= JAVASCRIPT ================= -->
+<script>
+// ===== NAVBAR SCROLL =====
+const navbar = document.getElementById('navbar');
+window.addEventListener('scroll', () => {
+  navbar.classList.toggle('scrolled', window.scrollY > 80);
+});
+
+// ===== HAMBURGER =====
+const hamburger = document.getElementById('hamburger');
+const mobileMenu = document.getElementById('mobileMenu');
+hamburger.addEventListener('click', () => {
+  hamburger.classList.toggle('open');
+  mobileMenu.classList.toggle('open');
+});
+function closeMobile() {
+  hamburger.classList.remove('open');
+  mobileMenu.classList.remove('open');
+}
+
+// ===== INTERSECTION OBSERVER (FADE IN) =====
+const observer = new IntersectionObserver((entries) => {
+  entries.forEach(entry => {
+    if (entry.isIntersecting) {
+      entry.target.classList.add('visible');
+    }
+  });
+}, { threshold: 0.1, rootMargin: '0px 0px -50px 0px' });
+
+document.querySelectorAll('.fade-in').forEach(el => observer.observe(el));
+
+// ===== TIMELINE OBSERVER =====
+const tlObserver = new IntersectionObserver((entries) => {
+  entries.forEach(entry => {
+    if (entry.isIntersecting) {
+      entry.target.classList.add('visible');
+    }
+  });
+}, { threshold: 0.2, rootMargin: '0px 0px -30px 0px' });
+
+document.querySelectorAll('.tl-content').forEach(el => tlObserver.observe(el));
+
+// ===== TIMELINE DOT ACTIVE =====
+function activateDot(dot) {
+  document.querySelectorAll('.tl-dot').forEach(d => d.classList.remove('active'));
+  dot.classList.add('active');
+}
+
+// ===== COMPONENT CARDS TOGGLE =====
+function toggleComp(card) {
+  const expand = card.querySelector('.comp-expand');
+  const isOpen = expand.classList.contains('open');
+  // Close all
+  document.querySelectorAll('.component-card').forEach(c => {
+    c.classList.remove('active');
+    c.querySelector('.comp-expand').classList.remove('open');
+  });
+  if (!isOpen) {
+    card.classList.add('active');
+    expand.classList.add('open');
+  }
+}
+
+/* Three.js é carregado via ES module abaixo — sem código aqui */
+
+// ===== COUNTER ANIMATION =====
+function animateCounter(el, target, suffix = '') {
+  let current = 0;
+  const duration = 1500;
+  const steps = 60;
+  const increment = target / steps;
+  const interval = duration / steps;
+
+  const timer = setInterval(() => {
+    current += increment;
+    if (current >= target) {
+      current = target;
+      clearInterval(timer);
+    }
+    el.textContent = Math.floor(current).toLocaleString('pt-BR') + suffix;
+  }, interval);
+}
+
+// Trigger counters when stats come into view
+const statNums = document.querySelectorAll('.stat-num');
+const counterObserver = new IntersectionObserver((entries) => {
+  entries.forEach(entry => {
+    if (entry.isIntersecting) {
+      const el = entry.target;
+      const raw = el.dataset.target;
+      if (raw) animateCounter(el, parseFloat(raw), el.dataset.suffix || '');
+      counterObserver.unobserve(el);
+    }
+  });
+}, { threshold: 0.5 });
+
+document.querySelectorAll('[data-target]').forEach(el => counterObserver.observe(el));
+
+// ===== SMOOTH ACTIVE NAV =====
+const sections = document.querySelectorAll('section[id]');
+const navLinks = document.querySelectorAll('.nav-links a');
+
+window.addEventListener('scroll', () => {
+  let current = '';
+  sections.forEach(section => {
+    if (window.scrollY >= section.offsetTop - 120) {
+      current = section.getAttribute('id');
+    }
+  });
+  navLinks.forEach(link => {
+    link.style.color = link.getAttribute('href') === '#' + current
+      ? 'var(--blue-primary)'
+      : '';
+  });
+});
+</script>
+
+<!-- ===== THREE.JS ES MODULE — MOTOR WANKEL GLB ===== -->
+<script type="module">
+import * as THREE from 'three';
+import { GLTFLoader } from 'three/addons/loaders/GLTFLoader.js';
+import { OrbitControls } from 'three/addons/controls/OrbitControls.js';
+
+const container  = document.getElementById('threejs-container');
+const loadingEl  = document.getElementById('modelLoading');
+const overlayEl  = document.getElementById('modelOverlay');
+if (!container) throw new Error('container not found');
+
+// ── Renderer ──
+const renderer = new THREE.WebGLRenderer({ antialias: true });
+renderer.setPixelRatio(Math.min(window.devicePixelRatio, 2));
+renderer.setSize(container.clientWidth, container.clientHeight);
+renderer.shadowMap.enabled = true;
+renderer.shadowMap.type = THREE.PCFSoftShadowMap;
+renderer.outputColorSpace = THREE.SRGBColorSpace;
+renderer.toneMapping = THREE.ACESFilmicToneMapping;
+renderer.toneMappingExposure = 1.3;
+container.appendChild(renderer.domElement);
+
+// ── Scene ──
+const scene = new THREE.Scene();
+scene.background = new THREE.Color(0x050a12);
+scene.fog = new THREE.FogExp2(0x060c18, 0.03);
+
+// ── Camera ──
+const camera = new THREE.PerspectiveCamera(
+  45, container.clientWidth / container.clientHeight, 0.01, 500
+);
+camera.position.set(0, 1.5, 4);
+
+// ── Controls ──
+const controls = new OrbitControls(camera, renderer.domElement);
+controls.enableDamping = true;
+controls.dampingFactor = 0.06;
+controls.minDistance = 0.5;
+controls.maxDistance = 12;
+controls.autoRotate = true;
+controls.autoRotateSpeed = 1.0;
+controls.enablePan = false;
+controls.target.set(0, 0, 0);
+controls.update();
+
+// ── Lighting ──
+scene.add(new THREE.AmbientLight(0x1a3a5c, 2.5));
+
+const key = new THREE.DirectionalLight(0x4fc3f7, 3.5);
+key.position.set(4, 6, 3);
+key.castShadow = true;
+key.shadow.mapSize.set(1024, 1024);
+scene.add(key);
+
+const fill = new THREE.DirectionalLight(0x81d4fa, 1.2);
+fill.position.set(-4, 2, -3);
+scene.add(fill);
+
+const back = new THREE.DirectionalLight(0xffffff, 0.8);
+back.position.set(0, -3, -4);
+scene.add(back);
+
+const point1 = new THREE.PointLight(0x29b6f6, 1.5, 10);
+point1.position.set(2, -1, 2);
+scene.add(point1);
+
+const point2 = new THREE.PointLight(0x0d47a1, 1.0, 8);
+point2.position.set(-2, 1, -2);
+scene.add(point2);
+
+// ── Grid ──
+const grid = new THREE.GridHelper(8, 24, 0x0d3a5c, 0x061825);
+grid.position.y = -1.5;
+scene.add(grid);
+
+// ── Load model ──
+const loader = new GLTFLoader();
+loader.load(
+  '../motor_wankel.glb',
+
+  (gltf) => {
+    const model = gltf.scene;
+
+    // Auto-center e auto-escala
+    const box    = new THREE.Box3().setFromObject(model);
+    const center = box.getCenter(new THREE.Vector3());
+    const size   = box.getSize(new THREE.Vector3());
+    const maxDim = Math.max(size.x, size.y, size.z);
+    const scale  = 2.5 / maxDim;
+
+    model.scale.setScalar(scale);
+    model.position.copy(center.multiplyScalar(-scale));
+
+    // Sombras + metalness
+    model.traverse(child => {
+      if (child.isMesh) {
+        child.castShadow = true;
+        child.receiveShadow = true;
+        const mats = Array.isArray(child.material) ? child.material : [child.material];
+        mats.forEach(m => {
+          if (m && (m.isMeshStandardMaterial || m.isMeshPhysicalMaterial)) {
+            m.envMapIntensity = 1.5;
+            m.needsUpdate = true;
+          }
+        });
+      }
+    });
+
+    scene.add(model);
+
+    // Animações embutidas no GLB
+    if (gltf.animations?.length) {
+      const mixer = new THREE.AnimationMixer(model);
+      gltf.animations.forEach(clip => mixer.clipAction(clip).play());
+      window._wankelMixer = mixer;
+    }
+
+    // Esconde loading
+    if (loadingEl) loadingEl.classList.add('hidden');
+    if (overlayEl) overlayEl.style.display = 'flex';
+  },
+
+  (xhr) => {
+    if (xhr.lengthComputable) {
+      const pct = Math.round((xhr.loaded / xhr.total) * 100);
+      const span = loadingEl?.querySelector('span');
+      if (span) span.textContent = `CARREGANDO MODELO 3D... ${pct}%`;
+    }
+  },
+
+  (err) => {
+    console.error('Erro ao carregar motor_wankel.glb:', err);
+    if (loadingEl) loadingEl.innerHTML = `
+      <div style="text-align:center;padding:2rem;">
+        <div style="font-size:2rem;margin-bottom:1rem;">⚠️</div>
+        <div style="font-family:'Share Tech Mono',monospace;font-size:0.65rem;color:#4fc3f7;letter-spacing:.12em;margin-bottom:.5rem;">ARQUIVO NÃO ENCONTRADO</div>
+        <div style="font-family:'Share Tech Mono',monospace;font-size:0.6rem;color:#4a7a9b;letter-spacing:.08em;">Coloque <span style="color:#81d4fa">motor_wankel.glb</span><br>na mesma pasta do index.html</div>
+      </div>`;
+  }
+);
+
+// ── Resize ──
+window.addEventListener('resize', () => {
+  const w = container.clientWidth, h = container.clientHeight;
+  camera.aspect = w / h;
+  camera.updateProjectionMatrix();
+  renderer.setSize(w, h);
+});
+
+// ── Loop ──
+const clock = new THREE.Clock();
+(function loop() {
+  requestAnimationFrame(loop);
+  const delta = clock.getDelta();
+  if (window._wankelMixer) window._wankelMixer.update(delta);
+  controls.update();
+  renderer.render(scene, camera);
+})();
+
+// ── Troca de câmera pelos tabs ──
+const presets = {
+  geral:   { pos: [0,  1.5,  4.0], tgt: [0, 0, 0] },
+  rotor:   { pos: [2,  0.5,  2.5], tgt: [0, 0, 0] },
+  estator: { pos: [-2.5, 1,  2],   tgt: [0, 0, 0] },
+  eixo:    { pos: [0, -0.5, 2.8],  tgt: [0, -0.2, 0] }
+};
+
+window.switchView = function(view) {
+  document.querySelectorAll('.model-tab').forEach(t => t.classList.remove('active'));
+  event.target.classList.add('active');
+  controls.autoRotate = false;
+  const p = presets[view] || presets.geral;
+  const toPos = new THREE.Vector3(...p.pos);
+  const toTgt = new THREE.Vector3(...p.tgt);
+  let t = 0;
+  const from = camera.position.clone(), fromTgt = controls.target.clone();
+  const id = setInterval(() => {
+    t = Math.min(t + 0.05, 1);
+    camera.position.lerpVectors(from, toPos, t);
+    controls.target.lerpVectors(fromTgt, toTgt, t);
+    controls.update();
+    if (t >= 1) clearInterval(id);
+  }, 16);
+};
+</script>
+</body>
+</html>

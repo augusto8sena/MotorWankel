@@ -314,8 +314,24 @@
     display: grid;
     grid-template-columns: 80px 1fr;
     gap: 1.5rem;
-    padding-bottom: 2rem;
+    padding: 1.5rem;
+    margin-bottom: 1rem;
     position: relative;
+    cursor: pointer;
+    transition: all 0.4s cubic-bezier(0.23, 1, 0.320, 1);
+    border-radius: 8px;
+    border: 1.5px solid transparent;
+    background: rgba(90,180,245,0);
+  }
+  .timeline-item:hover {
+    background: rgba(90,180,245,0.06);
+    border-color: rgba(90,180,245,0.2);
+    transform: translateX(8px);
+  }
+  .timeline-item.active {
+    background: rgba(90,180,245,0.12);
+    border-color: var(--accent-blue);
+    box-shadow: 0 0 20px rgba(90,180,245,0.25), inset 0 0 1px rgba(90,180,245,0.1);
   }
   .timeline-item:not(:last-child)::after {
     content: '';
@@ -323,6 +339,10 @@
     left: 39px; top: 28px; bottom: 0;
     width: 1px;
     background: var(--border);
+    transition: background 0.3s;
+  }
+  .timeline-item.active:not(:last-child)::after {
+    background: rgba(90,180,245,0.4);
   }
   .timeline-year {
     font-family: 'JetBrains Mono', monospace;
@@ -330,6 +350,11 @@
     color: var(--accent-blue);
     padding-top: 2px;
     text-align: right;
+    transition: font-size 0.3s, color 0.3s;
+  }
+  .timeline-item.active .timeline-year {
+    font-size: 14px;
+    font-weight: 700;
   }
   .timeline-dot {
     position: absolute;
@@ -338,15 +363,43 @@
     border: 2px solid var(--accent-blue);
     border-radius: 50%;
     background: var(--bg-primary);
+    transition: all 0.3s;
+    box-shadow: 0 0 0 0 rgba(90,180,245,0.3);
   }
-  .timeline-dot.active { background: var(--accent-blue); }
+  .timeline-item:hover .timeline-dot {
+    width: 18px;
+    height: 18px;
+    left: 30.5px;
+    box-shadow: 0 0 12px rgba(90,180,245,0.4);
+  }
+  .timeline-dot.active {
+    background: var(--accent-blue);
+    box-shadow: 0 0 20px rgba(90,180,245,0.6);
+    animation: pulse-dot 2s infinite;
+  }
+  .timeline-content {
+    opacity: 0.8;
+    transition: opacity 0.3s;
+  }
+  .timeline-item:hover .timeline-content,
+  .timeline-item.active .timeline-content {
+    opacity: 1;
+  }
   .timeline-content h4 {
-    font-family: 'Playfair Display', serif;
+    font-family: 'Montserrat', 'Playfair Display', serif;
     font-size: 1rem; font-weight: 600;
     margin-bottom: 0.3rem;
+    transition: color 0.3s;
+  }
+  .timeline-item.active .timeline-content h4 {
+    color: var(--accent-blue);
   }
   .timeline-content p {
     font-size: 0.9rem; color: var(--text-secondary); line-height: 1.6;
+    transition: color 0.3s;
+  }
+  .timeline-item.active .timeline-content p {
+    color: var(--text-primary);
   }
 
   /* ── MOTOR 3D INTERATIVO ── */
@@ -760,6 +813,10 @@
     50% { opacity: 0.3; }
   }
   @keyframes spin { to { transform: rotate(360deg); } }
+  @keyframes pulse-dot {
+    0%, 100% { box-shadow: 0 0 20px rgba(90,180,245,0.6); }
+    50% { box-shadow: 0 0 30px rgba(90,180,245,0.9); }
+  }
 
   .reveal {
     opacity: 0; transform: translateY(30px);
@@ -1311,6 +1368,52 @@
 
 <script>
 // ════════════════════════════════════════════
+// TIMELINE INTERATIVA
+// ════════════════════════════════════════════
+document.addEventListener('DOMContentLoaded', function() {
+  const timelineItems = document.querySelectorAll('.timeline-item');
+  
+  // Definir o último item como ativo por padrão
+  if (timelineItems.length > 0) {
+    timelineItems[timelineItems.length - 1].classList.add('active');
+    timelineItems[timelineItems.length - 1].querySelector('.timeline-dot').classList.add('active');
+  }
+  
+  // Adicionar interatividade ao clicar
+  timelineItems.forEach((item, idx) => {
+    item.addEventListener('click', function(e) {
+      // Remover classe ativa de todos os itens
+      timelineItems.forEach(i => {
+        i.classList.remove('active');
+        const dot = i.querySelector('.timeline-dot');
+        if (dot) dot.classList.remove('active');
+      });
+      
+      // Adicionar classe ativa ao item clicado
+      item.classList.add('active');
+      const clickedDot = item.querySelector('.timeline-dot');
+      if (clickedDot) clickedDot.classList.add('active');
+      
+      // Scroll suave para o item
+      setTimeout(() => {
+        item.scrollIntoView({behavior: 'smooth', block: 'center'});
+      }, 100);
+    });
+    
+    // Adicionar feedback visual ao passar o mouse
+    item.addEventListener('mouseenter', function() {
+      item.style.transform = 'translateX(8px)';
+    });
+    
+    item.addEventListener('mouseleave', function() {
+      if (!item.classList.contains('active')) {
+        item.style.transform = 'translateX(0)';
+      }
+    });
+  });
+});
+
+// ════════════════════════════════════════════
 // BG CANVAS — PARTÍCULAS
 // ════════════════════════════════════════════
 const bgC = document.getElementById('bg-canvas');
@@ -1715,8 +1818,14 @@ eng3d.addEventListener('mouseup', () => { eng3dDrag = false; });
 window.setView = function(v) {
   currentView = v;
   targetExplode = v === 'exploded' ? 1 : 0;
-  document.querySelectorAll('.viewer-controls .vbtn').forEach(b => b.classList.remove('active'));
-  event.target.classList.add('active');
+  // Corrige ativação dos botões
+  const btns = document.querySelectorAll('.viewer-controls .vbtn');
+  btns.forEach(b => {
+    if (b.textContent.includes('Perspectiva') && v === 'perspective') b.classList.add('active');
+    else if (b.textContent.includes('Frontal') && v === 'front') b.classList.add('active');
+    else if (b.textContent.includes('Explodida') && v === 'exploded') b.classList.add('active');
+    else b.classList.remove('active');
+  });
 };
 
 window.toggleAnim = function() {
